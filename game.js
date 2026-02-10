@@ -502,3 +502,4 @@ canvas.addEventListener("mouseup", e => {
 hookMenuButtons();
 hookChestButtons();
 showMainMenu();
+hookInventoryButtons();

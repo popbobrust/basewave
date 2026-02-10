@@ -4,6 +4,8 @@ const CHEST_COST = {
   elite: 400
 };
 
+let lastCrateItem = null;
+
 function openChest(type) {
   const cost = CHEST_COST[type];
   if (!cost) return;
@@ -19,16 +21,11 @@ function openChest(type) {
     item = createWeapon(type);
   }
 
-  equipItem(item);
-  setMessage(`You obtained ${describeItem(item)}!`);
-}
-
-function describeItem(item) {
-  if (item.kind === "armor") {
-    return `${item.set} ${item.slot} (${TIER_NAMES[item.tier]})`;
-  } else {
-    return `${item.name} (${TIER_NAMES[item.tier]})`;
-  }
+  lastCrateItem = item;
+  const text = describeItem(item);
+  const popup = document.getElementById("crate-popup");
+  document.getElementById("crate-item-text").textContent = `You obtained ${text}!`;
+  popup.classList.remove("hidden");
 }
 
 function hookChestButtons() {
@@ -37,5 +34,13 @@ function hookChestButtons() {
       const type = btn.getAttribute("data-type");
       openChest(type);
     });
+  });
+
+  document.getElementById("crate-ok-btn").addEventListener("click", () => {
+    document.getElementById("crate-popup").classList.add("hidden");
+    if (lastCrateItem) {
+      addItemToInventory(lastCrateItem);
+      lastCrateItem = null;
+    }
   });
 }

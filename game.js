@@ -237,7 +237,7 @@ function spawnWave() {
     }
 
     const speed = 1.2 + wave * 0.2;
-    const health = 40 + wave * 10;
+    const health = 30 + wave * 8;
     enemies.push(new Enemy(x, y, speed, health));
   }
   enemiesLeftEl.textContent = enemies.length;
@@ -283,7 +283,7 @@ function showLevelUpChoices() {
 
   const options = [];
   while (options.length < 3) {
-    if (Math.random() < 0.5) {
+    if (Math.random() < 0.6) {
       const ab = randomFrom(ABILITY_POOL);
       options.push({ type: "ability", def: ab });
     } else {
@@ -295,11 +295,27 @@ function showLevelUpChoices() {
   options.forEach(opt => {
     const div = document.createElement("div");
     div.className = "levelup-option";
+
+    const title = document.createElement("div");
+    title.className = "levelup-title";
+
+    const stars = document.createElement("div");
+    stars.className = "levelup-stars";
+
     if (opt.type === "ability") {
-      div.textContent = `Ability: ${opt.def.name}`;
+      const existing = abilities.find(a => a.id === opt.def.id);
+      const level = existing ? existing.level : 0;
+      title.textContent = `Ability: ${opt.def.name}`;
+      stars.textContent =
+        "★".repeat(level || 1) + "☆".repeat(5 - (level || 1));
     } else {
-      div.textContent = `Helper: ${opt.def.name}`;
+      title.textContent = `Helper: ${opt.def.name}`;
+      stars.textContent = "";
     }
+
+    div.appendChild(title);
+    div.appendChild(stars);
+
     div.addEventListener("click", () => {
       if (opt.type === "ability") {
         const existing = abilities.find(a => a.id === opt.def.id);
@@ -315,6 +331,7 @@ function showLevelUpChoices() {
       menu.classList.add("hidden");
       paused = false;
     });
+
     container.appendChild(div);
   });
 
@@ -386,6 +403,7 @@ function draw() {
   bullets.forEach(b => b.draw());
   enemies.forEach(e => e.draw());
   particles.forEach(p => p.draw());
+  drawAbilities(ctx);
 }
 
 function gameLoop(timestamp) {

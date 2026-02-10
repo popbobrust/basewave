@@ -153,3 +153,7 @@ function hookInventoryButtons() {
   document.getElementById("inv-merge-btn").addEventListener("click", inventoryMergeSelected);
   document.getElementById("inv-close-btn").addEventListener("click", closeInventory);
 }
+document.addEventListener("DOMContentLoaded", () => {
+  updateEquippedUI();
+});
+

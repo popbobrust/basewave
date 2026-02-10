@@ -275,6 +275,8 @@ function endGame(won) {
 // ---------- Level-up UI ----------
 
 function showLevelUpChoices() {
+  paused = true;
+
   const menu = document.getElementById("levelup-menu");
   const container = document.getElementById("levelup-options");
   container.innerHTML = "";
@@ -311,6 +313,7 @@ function showLevelUpChoices() {
         if (player) player.applyGearAndHelpers();
       }
       menu.classList.add("hidden");
+      paused = false;
     });
     container.appendChild(div);
   });

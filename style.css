@@ -11,6 +11,8 @@ body {
 #ui {
   margin-top: 10px;
   text-align: center;
+  position: relative;
+  z-index: 2;
 }
 
 .stats {
@@ -20,17 +22,31 @@ body {
   margin-bottom: 10px;
 }
 
-#start-btn {
-  padding: 8px 16px;
+.chests {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.chest-btn {
+  padding: 6px 12px;
   border: none;
-  background: #1e90ff;
+  background: #8e44ad;
   color: white;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 0.9rem;
 }
 
-#start-btn:hover {
-  background: #1874d1;
+.chest-btn:hover {
+  background: #732d91;
+}
+
+#gear-info {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  min-height: 20px;
 }
 
 #message {
@@ -42,4 +58,56 @@ body {
   margin-top: 10px;
   border: 2px solid #444;
   background: #000;
+  z-index: 1;
+}
+
+.menu {
+  position: absolute;
+  top: 20%;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 20px;
+  max-width: 400px;
+  border-radius: 8px;
+  z-index: 3;
+}
+
+.menu button {
+  padding: 8px 16px;
+  margin-top: 10px;
+  border: none;
+  background: #1e90ff;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.menu button:hover {
+  background: #1874d1;
+}
+
+.hidden {
+  display: none;
+}
+
+#levelup-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.levelup-option {
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: #222;
+  cursor: pointer;
+  border: 1px solid #555;
+}
+
+.levelup-option:hover {
+  background: #333;
 }

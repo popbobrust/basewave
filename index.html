@@ -53,6 +53,12 @@ window.onerror = function(msg, url, line, col, error) {
     <p>Choose an ability or helper:</p>
     <div id="levelup-options"></div>
   </div>
+  <div id="death-menu" class="menu hidden fullscreen">
+    <h2>You Died</h2>
+    <p id="death-summary"></p>
+    <button id="death-restart-btn">Play Again</button>
+    <button id="death-menu-btn">Back to Main Menu</button>
+  </div>
 
   <canvas id="gameCanvas" width="800" height="500"></canvas>
 

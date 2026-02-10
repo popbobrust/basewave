@@ -1,11 +1,21 @@
-// Abilities with visuals + stars + evo
+// ===============================
+// ABILITIES SYSTEM (FULL REWRITE)
+// ===============================
+
+// Abilities with visuals, star levels, evo, no duplicates, and helper scaling
 
 const MAX_ABILITIES = 6;
 
 let abilities = [];
-let helpers = [];
+let helpers = []; // each helper: { id, name, level }
 
-// Ability defs
+// Visual state
+let guardianOrbs = [];
+let molotovPools = [];
+let droneBullets = [];
+let droneAngle = 0;
+
+// Ability definitions
 const ABILITY_POOL = [
   {
     id: "guardian_halo",
@@ -28,11 +38,12 @@ const ABILITY_POOL = [
   {
     id: "drone",
     name: "Assault Drone",
-    basePower: 6,
-    cooldown: 400
+    basePower: 3,      // lower damage
+    cooldown: 200      // much faster
   }
 ];
 
+// Helper definitions (now with star levels)
 const HELPER_POOL = [
   { id: "atk_speed", name: "Attack Speed Up" },
   { id: "move_speed", name: "Move Speed Up" },
@@ -43,10 +54,9 @@ const HELPER_POOL = [
   { id: "evo", name: "Evolution Core" }
 ];
 
-// Visual state
-let guardianOrbs = [];
-let molotovPools = [];
-let droneBullets = [];
+// ===============================
+// RESET
+// ===============================
 
 function resetAbilities() {
   abilities = [];
@@ -54,81 +64,89 @@ function resetAbilities() {
   guardianOrbs = [];
   molotovPools = [];
   droneBullets = [];
+  droneAngle = 0;
   updateAbilitiesBar();
 }
 
-function addAbility(abilityDef) {
+// ===============================
+// ADD / UPGRADE ABILITIES
+// ===============================
+
+function addAbility(def) {
   if (abilities.length >= MAX_ABILITIES) return;
-  const now = performance.now();
-  const ability = {
-    ...abilityDef,
+  abilities.push({
+    ...def,
     level: 1,
     evolved: false,
-    lastCast: now
-  };
-  abilities.push(ability);
+    lastCast: performance.now()
+  });
   updateAbilitiesBar();
 }
 
-function upgradeAbility(ability) {
-  ability.level = Math.min(ability.level + 1, 5);
+function upgradeAbility(ab) {
+  ab.level = Math.min(ab.level + 1, 5);
   updateAbilitiesBar();
 }
 
-function addHelper(helperDef) {
-  helpers.push(helperDef);
+// ===============================
+// HELPERS (NOW WITH STAR LEVELS)
+// ===============================
+
+function addHelper(def) {
+  const existing = helpers.find(h => h.id === def.id);
+  if (existing) {
+    existing.level = Math.min(existing.level + 1, 5);
+  } else {
+    helpers.push({ ...def, level: 1 });
+  }
+}
+
+function getHelperLevel(id) {
+  const h = helpers.find(h => h.id === id);
+  return h ? h.level : 0;
 }
 
 function hasHelper(id) {
   return helpers.some(h => h.id === id);
 }
 
-function evolveAbilityIfPossible(ability) {
-  if (ability.evolved) return;
-  if (!hasHelper("evo")) return;
-  ability.evolved = true;
-}
+// ===============================
+// MULTIPLIERS
+// ===============================
 
 function getAbilityDamageMult() {
-  const bonuses = getSetBonuses();
-  let mult = bonuses.abilityDamageMult;
-  if (hasHelper("damage_up")) mult += 0.25;
-  if (hasHelper("crit")) mult += 0.1;
+  let mult = 1;
+  mult += getHelperLevel("damage_up") * 0.1;
+  mult += getHelperLevel("crit") * 0.05;
   return mult;
 }
 
 function getAttackSpeedMult() {
-  const bonuses = getSetBonuses();
-  let mult = bonuses.attackSpeedMult;
-  if (hasHelper("atk_speed")) mult += 0.25;
-  return mult;
+  return 1 + getHelperLevel("atk_speed") * 0.1;
 }
 
 function getMoveSpeedMult() {
-  const bonuses = getSetBonuses();
-  let mult = bonuses.speedMult;
-  if (hasHelper("move_speed")) mult += 0.2;
-  return mult;
+  return 1 + getHelperLevel("move_speed") * 0.08;
 }
 
 function getCooldownMult() {
-  let mult = 1;
-  if (hasHelper("cdr")) mult -= 0.2;
-  return mult;
+  return Math.max(0.6, 1 - getHelperLevel("cdr") * 0.05);
 }
 
 function applyRegen(dt) {
-  if (!player) return;
-  if (!hasHelper("regen")) return;
-  const regenPerSecond = 1;
-  player.health = Math.min(
-    player.maxHealth,
-    player.health + (regenPerSecond * dt) / 1000
-  );
+  const lvl = getHelperLevel("regen");
+  if (!lvl || !player) return;
+  const regen = lvl * 0.5;
+  player.health = Math.min(player.maxHealth, player.health + regen * dt / 1000);
 }
+
+// ===============================
+// ABILITY CASTING
+// ===============================
 
 function updateAbilities(dt) {
   if (!player) return;
+
   const now = performance.now();
   const dmgMult = getAbilityDamageMult();
   const cdMult = getCooldownMult();
@@ -148,61 +166,69 @@ function updateAbilities(dt) {
   applyRegen(dt);
 }
 
-function castAbility(ability, dmgMult) {
-  evolveAbilityIfPossible(ability);
-  const base = ability.basePower;
-  const levelMult = 1 + (ability.level - 1) * 0.5;
-  const evoMult = ability.evolved ? 2.5 : 1;
-  const damage = base * levelMult * evoMult * dmgMult;
-
-  switch (ability.id) {
-    case "guardian_halo":
-      spawnGuardianOrbs(ability, damage);
-      break;
-    case "forcefield":
-      applyForcefield(ability, damage);
-      break;
-    case "molotov_ring":
-      spawnMolotov(ability, damage);
-      break;
-    case "drone":
-      spawnDroneShot(ability, damage);
-      break;
+function evolveAbilityIfPossible(ab) {
+  if (!ab.evolved && hasHelper("evo")) {
+    ab.evolved = true;
   }
 }
 
-// ---------- Guardian Halo ----------
+function castAbility(ab, dmgMult) {
+  evolveAbilityIfPossible(ab);
 
-function spawnGuardianOrbs(ability, damage) {
-  const count = 2 + ability.level;
-  const baseRadius = 60 + ability.level * 10;
-  const speed = ability.evolved ? 0.008 : 0.004;
+  const base = ab.basePower;
+  const levelMult = 1 + (ab.level - 1) * 0.5;
+  const evoMult = ab.evolved ? 2.5 : 1;
+  const damage = base * levelMult * evoMult * dmgMult;
 
-  guardianOrbs = [];
-  for (let i = 0; i < count; i++) {
-    guardianOrbs.push({
-      angle: (Math.PI * 2 * i) / count,
-      radius: baseRadius,
-      damage,
-      speed
+  switch (ab.id) {
+    case "guardian_halo": spawnGuardianOrbs(ab, damage); break;
+    case "forcefield": applyForcefield(ab, damage); break;
+    case "molotov_ring": spawnMolotov(ab, damage); break;
+    case "drone": spawnDroneShot(ab, damage); break;
+  }
+}
+
+// ===============================
+// GUARDIAN HALO
+// ===============================
+
+function spawnGuardianOrbs(ab, damage) {
+  const count = 2 + ab.level;
+  const radius = 60 + ab.level * 10;
+  const speed = ab.evolved ? 0.008 : 0.004;
+
+  if (guardianOrbs.length === 0) {
+    for (let i = 0; i < count; i++) {
+      guardianOrbs.push({
+        angle: (Math.PI * 2 * i) / count,
+        radius,
+        damage,
+        speed
+      });
+    }
+  } else {
+    guardianOrbs.forEach(o => {
+      o.radius = radius;
+      o.damage = damage;
+      o.speed = speed;
     });
   }
 }
 
 function updateGuardianOrbs(dt) {
   if (!player) return;
-  guardianOrbs.forEach(orb => {
-    orb.angle += orb.speed * dt;
-    const x = player.x + Math.cos(orb.angle) * orb.radius;
-    const y = player.y + Math.sin(orb.angle) * orb.radius;
+
+  guardianOrbs.forEach(o => {
+    o.angle += o.speed * dt;
+    const x = player.x + Math.cos(o.angle) * o.radius;
+    const y = player.y + Math.sin(o.angle) * o.radius;
 
     enemies.forEach(e => {
       if (!e.alive) return;
-      const dist = Math.hypot(e.x - x, e.y - y);
-      if (dist < 18) {
-        e.health -= orb.damage;
+      if (Math.hypot(e.x - x, e.y - y) < 18) {
+        e.health -= o.damage;
         spawnHitParticles(e.x, e.y, "#66bb6a");
-        if (e.health <= 0 && e.alive) {
+        if (e.health <= 0) {
           e.alive = false;
           onEnemyKilled();
           addCoins(5 + wave);
@@ -212,23 +238,23 @@ function updateGuardianOrbs(dt) {
   });
 }
 
-// ---------- Forcefield ----------
+// ===============================
+// FORCEFIELD
+// ===============================
 
-function applyForcefield(ability, damage) {
-  if (!player) return;
-  const baseRadius = 70 + ability.level * 12;
-  const radius = ability.evolved ? baseRadius * 1.4 : baseRadius;
+function applyForcefield(ab, damage) {
+  const baseRadius = 70 + ab.level * 12;
+  const radius = ab.evolved ? baseRadius * 1.4 : baseRadius;
 
   enemies.forEach(e => {
     if (!e.alive) return;
-    const dist = Math.hypot(e.x - player.x, e.y - player.y);
-    if (dist < radius) {
-      const slowFactor = ability.evolved ? 0.4 : 0.7;
-      e.x -= (e.x - player.x) * 0.01 * slowFactor;
-      e.y -= (e.y - player.y) * 0.01 * slowFactor;
+    if (Math.hypot(e.x - player.x, e.y - player.y) < radius) {
+      const slow = ab.evolved ? 0.4 : 0.7;
+      e.x -= (e.x - player.x) * 0.01 * slow;
+      e.y -= (e.y - player.y) * 0.01 * slow;
 
       e.health -= damage * 0.5;
-      if (e.health <= 0 && e.alive) {
+      if (e.health <= 0) {
         e.alive = false;
         spawnHitParticles(e.x, e.y, "#42a5f5");
         onEnemyKilled();
@@ -238,22 +264,21 @@ function applyForcefield(ability, damage) {
   });
 }
 
-// ---------- Molotov Ring ----------
+// ===============================
+// MOLOTOV
+// ===============================
 
-function spawnMolotov(ability, damage) {
-  if (!player) return;
-  const count = 1 + ability.level;
-  const baseRadius = 120 + ability.level * 15;
-  const life = ability.evolved ? 4500 : 3000;
-  const size = ability.evolved ? 80 : 50;
+function spawnMolotov(ab, damage) {
+  const count = 1 + ab.level;
+  const radius = 120 + ab.level * 15;
+  const size = ab.evolved ? 80 : 50;
+  const life = ab.evolved ? 4500 : 3000;
 
   for (let i = 0; i < count; i++) {
     const angle = (Math.PI * 2 * i) / count;
-    const x = player.x + Math.cos(angle) * baseRadius;
-    const y = player.y + Math.sin(angle) * baseRadius;
     molotovPools.push({
-      x,
-      y,
+      x: player.x + Math.cos(angle) * radius,
+      y: player.y + Math.sin(angle) * radius,
       radius: size,
       damage,
       life
@@ -262,14 +287,13 @@ function spawnMolotov(ability, damage) {
 }
 
 function updateMolotovPools(dt) {
-  molotovPools.forEach(pool => {
-    pool.life -= dt;
+  molotovPools.forEach(p => {
+    p.life -= dt;
     enemies.forEach(e => {
       if (!e.alive) return;
-      const dist = Math.hypot(e.x - pool.x, e.y - pool.y);
-      if (dist < pool.radius) {
-        e.health -= pool.damage * (dt / 1000) * 3;
-        if (e.health <= 0 && e.alive) {
+      if (Math.hypot(e.x - p.x, e.y - p.y) < p.radius) {
+        e.health -= p.damage * (dt / 1000) * 3;
+        if (e.health <= 0) {
           e.alive = false;
           spawnHitParticles(e.x, e.y, "#ff7043");
           onEnemyKilled();
@@ -281,48 +305,34 @@ function updateMolotovPools(dt) {
   molotovPools = molotovPools.filter(p => p.life > 0);
 }
 
-// ---------- Drone ----------
+// ===============================
+// DRONE
+// ===============================
 
-function spawnDroneShot(ability, damage) {
-  if (!player) return;
-  const speed = 6 + ability.level * 0.8;
-  const evolved = ability.evolved;
+function spawnDroneShot(ab, damage) {
+  const speed = 9 + ab.level * 1.2;
 
-  if (!evolved) {
+  if (!ab.evolved) {
     const angle = performance.now() / 200;
-    const vx = Math.cos(angle) * speed;
-    const vy = Math.sin(angle) * speed;
     droneBullets.push({
       x: player.x,
       y: player.y,
-      vx,
-      vy,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
       damage,
       life: 1200
     });
   } else {
     droneBullets.push(
-      {
-        x: player.x,
-        y: player.y,
-        vx: speed,
-        vy: 0,
-        damage,
-        life: 1200
-      },
-      {
-        x: player.x,
-        y: player.y,
-        vx: -speed,
-        vy: 0,
-        damage,
-        life: 1200
-      }
+      { x: player.x, y: player.y, vx: speed, vy: 0, damage, life: 1200 },
+      { x: player.x, y: player.y, vx: -speed, vy: 0, damage, life: 1200 }
     );
   }
 }
 
 function updateDroneBullets(dt) {
+  droneAngle += 0.01 * dt;
+
   droneBullets.forEach(b => {
     b.life -= dt;
     b.x += b.vx;
@@ -330,12 +340,11 @@ function updateDroneBullets(dt) {
 
     enemies.forEach(e => {
       if (!e.alive) return;
-      const dist = Math.hypot(e.x - b.x, e.y - b.y);
-      if (dist < 14) {
+      if (Math.hypot(e.x - b.x, e.y - b.y) < 14) {
         e.health -= b.damage;
         spawnHitParticles(e.x, e.y, "#ffee58");
         b.life = 0;
-        if (e.health <= 0 && e.alive) {
+        if (e.health <= 0) {
           e.alive = false;
           onEnemyKilled();
           addCoins(5 + wave);
@@ -343,28 +352,31 @@ function updateDroneBullets(dt) {
       }
     });
   });
+
   droneBullets = droneBullets.filter(b => b.life > 0);
 }
 
-// ---------- Drawing ----------
+// ===============================
+// DRAW VISUALS
+// ===============================
 
 function drawAbilities(ctx) {
   // Guardian orbs
-  guardianOrbs.forEach(orb => {
-    const x = player.x + Math.cos(orb.angle) * orb.radius;
-    const y = player.y + Math.sin(orb.angle) * orb.radius;
-    ctx.fillStyle = "rgba(102, 187, 106, 0.8)";
+  guardianOrbs.forEach(o => {
+    const x = player.x + Math.cos(o.angle) * o.radius;
+    const y = player.y + Math.sin(o.angle) * o.radius;
+    ctx.fillStyle = "rgba(102,187,106,0.8)";
     ctx.beginPath();
     ctx.arc(x, y, 10, 0, Math.PI * 2);
     ctx.fill();
   });
 
-  // Forcefield visual
+  // Forcefield
   const ff = abilities.find(a => a.id === "forcefield");
-  if (ff && player) {
-    const baseRadius = 70 + ff.level * 12;
-    const radius = ff.evolved ? baseRadius * 1.4 : baseRadius;
-    ctx.strokeStyle = "rgba(66, 165, 245, 0.6)";
+  if (ff) {
+    const base = 70 + ff.level * 12;
+    const radius = ff.evolved ? base * 1.4 : base;
+    ctx.strokeStyle = "rgba(66,165,245,0.6)";
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(player.x, player.y, radius, 0, Math.PI * 2);
@@ -372,13 +384,24 @@ function drawAbilities(ctx) {
   }
 
   // Molotov pools
-  molotovPools.forEach(pool => {
-    const alpha = Math.max(pool.life / 3000, 0.2);
-    ctx.fillStyle = `rgba(255, 112, 67, ${alpha})`;
+  molotovPools.forEach(p => {
+    ctx.fillStyle = "rgba(255,112,67,0.5)";
     ctx.beginPath();
-    ctx.arc(pool.x, pool.y, pool.radius, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
     ctx.fill();
   });
+
+  // Drone body
+  const droneAb = abilities.find(a => a.id === "drone");
+  if (droneAb) {
+    const radius = 40;
+    const x = player.x + Math.cos(droneAngle) * radius;
+    const y = player.y + Math.sin(droneAngle) * radius;
+    ctx.fillStyle = "#90caf9";
+    ctx.beginPath();
+    ctx.arc(x, y, 8, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   // Drone bullets
   droneBullets.forEach(b => {
@@ -389,16 +412,18 @@ function drawAbilities(ctx) {
   });
 }
 
-// ---------- UI: abilities bar ----------
+// ===============================
+// ABILITY BAR UI
+// ===============================
 
 function updateAbilitiesBar() {
   const bar = document.getElementById("abilities-bar");
-  if (!bar) return;
   bar.innerHTML = "";
 
   for (let i = 0; i < MAX_ABILITIES; i++) {
     const slot = document.createElement("div");
     slot.className = "ability-slot";
+
     const ab = abilities[i];
     if (ab) {
       const name = document.createElement("span");
@@ -414,6 +439,7 @@ function updateAbilitiesBar() {
     } else {
       slot.textContent = "Empty";
     }
+
     bar.appendChild(slot);
   }
 }

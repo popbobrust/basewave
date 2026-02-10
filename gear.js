@@ -128,3 +128,24 @@ function describeItem(item) {
     return `${item.name} (${TIER_NAMES[item.tier]})`;
   }
 }
+function getSetCounts() {
+  const counts = {};
+  for (const slot of ARMOR_SLOTS) {
+    const item = equippedArmor[slot];
+    if (!item) continue;
+    counts[item.set] = (counts[item.set] || 0) + 1;
+  }
+  return counts;
+}
+
+function getLegendarySets() {
+  const legendaries = {};
+  for (const slot of ARMOR_SLOTS) {
+    const item = equippedArmor[slot];
+    if (!item) continue;
+    if (item.tier === 4) {
+      legendaries[item.set] = true;
+    }
+  }
+  return legendaries;
+}

@@ -1,10 +1,8 @@
-// Simple gear system: 5 armor slots, 1 weapon, sets, tiers, merging
-
 const ARMOR_SLOTS = ["helmet", "chest", "legs", "boots", "gloves"];
 const SET_NAMES = ["Knight", "Rogue", "Mage", "Guardian", "Berserker"];
 const TIER_NAMES = ["Common", "Uncommon", "Rare", "Epic", "Legendary"];
 
-let equippedArmor = {}; // slot -> item
+let equippedArmor = {};
 let equippedWeapon = null;
 
 function createArmor(chestType) {
@@ -41,7 +39,7 @@ function rollTier(chestType) {
   let sum = 0;
   for (let i = 0; i < table.length; i++) {
     sum += table[i];
-    if (roll < sum) return i; // 0-4
+    if (roll < sum) return i;
   }
   return 0;
 }
@@ -57,8 +55,8 @@ function generateArmorStats(set, tier) {
 }
 
 function generateWeaponStats(tier) {
-  const baseDamage = 10 + tier * 6;
-  const attackSpeed = 1 + tier * 0.1;
+  const baseDamage = 12 + tier * 7;
+  const attackSpeed = 1 + tier * 0.12;
   return {
     damage: baseDamage,
     attackSpeed
@@ -168,4 +166,9 @@ function resetGear() {
   equippedArmor = {};
   equippedWeapon = null;
   updateGearUI();
+}
+
+function applyGearToPlayer() {
+  if (!window.player) return;
+  player.applyGearAndHelpers();
 }

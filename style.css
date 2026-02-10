@@ -1,0 +1,45 @@
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #111;
+  color: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#ui {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.stats {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+#start-btn {
+  padding: 8px 16px;
+  border: none;
+  background: #1e90ff;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#start-btn:hover {
+  background: #1874d1;
+}
+
+#message {
+  margin-top: 8px;
+  min-height: 20px;
+}
+
+#gameCanvas {
+  margin-top: 10px;
+  border: 2px solid #444;
+  background: #000;
+}

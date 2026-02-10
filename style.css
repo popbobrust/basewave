@@ -6,6 +6,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  overflow: hidden;
 }
 
 #ui {
@@ -49,6 +50,32 @@ body {
   min-height: 20px;
 }
 
+#abilities-bar {
+  margin-top: 6px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  min-height: 28px;
+  font-size: 0.85rem;
+}
+
+.ability-slot {
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: #222;
+  border: 1px solid #555;
+  min-width: 90px;
+}
+
+.ability-name {
+  display: block;
+}
+
+.ability-stars {
+  color: #ffeb3b;
+  font-size: 0.8rem;
+}
+
 #message {
   margin-top: 8px;
   min-height: 20px;
@@ -63,16 +90,25 @@ body {
 
 .menu {
   position: absolute;
-  top: 20%;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 20px;
+  max-width: 420px;
+  border-radius: 8px;
+  z-index: 5;
+  color: #f5f5f5;
+}
+
+.fullscreen {
+  top: 0;
   left: 0;
   right: 0;
-  margin: 0 auto;
-  text-align: center;
-  background: rgba(0, 0, 0, 0.8);
-  padding: 20px;
-  max-width: 400px;
-  border-radius: 8px;
-  z-index: 3;
+  bottom: 0;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .menu button {
@@ -106,8 +142,18 @@ body {
   background: #222;
   cursor: pointer;
   border: 1px solid #555;
+  text-align: left;
 }
 
 .levelup-option:hover {
   background: #333;
+}
+
+.levelup-title {
+  font-weight: 600;
+}
+
+.levelup-stars {
+  color: #ffeb3b;
+  font-size: 0.85rem;
 }

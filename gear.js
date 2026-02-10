@@ -30,8 +30,8 @@ function createWeapon(chestType) {
 
 function rollTier(chestType) {
   const odds = {
-    basic: [60, 30, 8, 2, 0],
-    advanced: [40, 35, 15, 8, 2],
+    basic: [80, 15, 4, 1, 0],
+    advanced: [60, 20, 10, 7, 3],
     elite: [20, 30, 25, 15, 10]
   };
   const table = odds[chestType];

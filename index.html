@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Wave Survival</title>
+  <title>Wave Survival Roguelite</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -12,13 +12,47 @@
       <span>Health: <span id="health">100</span></span>
       <span>Wave: <span id="wave">1</span></span>
       <span>Enemies Left: <span id="enemies-left">0</span></span>
+      <span>Coins: <span id="coins">0</span></span>
+      <span>Level: <span id="player-level">1</span></span>
     </div>
-    <button id="start-btn">Start Game</button>
+
+    <div class="chests">
+      <button class="chest-btn" data-type="basic">Open Basic (50)</button>
+      <button class="chest-btn" data-type="advanced">Open Advanced (150)</button>
+      <button class="chest-btn" data-type="elite">Open Elite (400)</button>
+    </div>
+
+    <div id="gear-info"></div>
     <div id="message"></div>
+  </div>
+
+  <div id="main-menu" class="menu">
+    <h1>Wave Survival</h1>
+    <p>Survive waves, earn coins, open chests, build sets, and evolve abilities.</p>
+    <button id="play-btn">Play</button>
+  </div>
+
+  <div id="pause-menu" class="menu hidden">
+    <h2>Paused</h2>
+    <button id="resume-btn">Resume</button>
+    <button id="quit-btn">Quit to Menu</button>
+  </div>
+
+  <div id="levelup-menu" class="menu hidden">
+    <h2>Level Up!</h2>
+    <p>Choose an ability or helper:</p>
+    <div id="levelup-options"></div>
   </div>
 
   <canvas id="gameCanvas" width="800" height="500"></canvas>
 
+  <!-- Scripts: order matters -->
+  <script src="currency.js"></script>
+  <script src="gear.js"></script>
+  <script src="chests.js"></script>
+  <script src="abilities.js"></script>
+  <script src="waves.js"></script>
+  <script src="menu.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

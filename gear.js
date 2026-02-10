@@ -2,7 +2,7 @@ const ARMOR_SLOTS = ["helmet", "chest", "legs", "boots", "gloves"];
 const SET_NAMES = ["Knight", "Rogue", "Mage", "Guardian", "Berserker"];
 const TIER_NAMES = ["Common", "Uncommon", "Rare", "Epic", "Legendary"];
 
-let equippedArmor = {}; 
+let equippedArmor = {};
 let equippedWeapon = null;
 
 function createArmor(chestType) {
@@ -65,18 +65,12 @@ function randomFrom(arr) {
 
 function equipItem(item) {
   if (item.kind === "armor") {
-    const current = equippedArmor[item.slot];
-    const merged = current && current.tier === item.tier && current.set === item.set
-      ? tryMerge(current, item)
-      : null;
-    equippedArmor[item.slot] = merged || item;
+    equippedArmor[item.slot] = item;
   } else {
-    const merged = equippedWeapon && equippedWeapon.tier === item.tier
-      ? tryMergeWeapon(equippedWeapon, item)
-      : null;
-    equippedWeapon = merged || item;
+    equippedWeapon = item;
   }
   updateGearUI();
+  updateEquippedUI && updateEquippedUI();
 }
 
 function tryMerge(a, b) {
@@ -124,4 +118,12 @@ function updateGearUI() {
     : "none";
 
   el.textContent = text;
+}
+
+function describeItem(item) {
+  if (item.kind === "armor") {
+    return `${item.set} ${item.slot} (${TIER_NAMES[item.tier]})`;
+  } else {
+    return `${item.name} (${TIER_NAMES[item.tier]})`;
+  }
 }

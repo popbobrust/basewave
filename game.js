@@ -2,10 +2,7 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
 const healthEl = document.getElementById("health");
-const waveEl = document.getElementById("wave");
 const enemiesLeftEl = document.getElementById("enemies-left");
-const startBtn = document.getElementById("start-btn");
-const messageEl = document.getElementById("message");
 
 const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
@@ -18,19 +15,45 @@ let bullets = [];
 let enemies = [];
 let particles = [];
 
-let wave = 1;
-let gameRunning = false;
 let lastTime = 0;
+
+// ---------- Player / Enemy / Bullet / Particle ----------
 
 class Player {
   constructor() {
     this.x = WIDTH / 2;
     this.y = HEIGHT / 2;
     this.radius = 15;
-    this.speed = 3;
-    this.health = 100;
-    this.fireRate = 200; // ms
+    this.baseSpeed = 3;
+    this.speed = this.baseSpeed;
+    this.baseHealth = 100;
+    this.maxHealth = this.baseHealth;
+    this.health = this.maxHealth;
+    this.baseFireRate = 200;
+    this.fireRate = this.baseFireRate;
     this.lastShot = 0;
+  }
+
+  applyGearAndHelpers() {
+    const bonuses = getSetBonuses();
+    const moveMult = getMoveSpeedMult();
+    const atkSpeedMult = getAttackSpeedMult();
+
+    let extraHealth = 0;
+    for (const slot of ARMOR_SLOTS) {
+      const item = equippedArmor[slot];
+      if (item) extraHealth += item.stats.health;
+    }
+    if (equippedWeapon) {
+      this.fireRate =
+        this.baseFireRate / (equippedWeapon.stats.attackSpeed * atkSpeedMult);
+    } else {
+      this.fireRate = this.baseFireRate / atkSpeedMult;
+    }
+
+    this.maxHealth = (this.baseHealth + extraHealth) * bonuses.healthMult;
+    this.health = Math.min(this.health, this.maxHealth);
+    this.speed = this.baseSpeed * moveMult;
   }
 
   update(dt) {
@@ -50,11 +73,9 @@ class Player {
       this.y += dy * this.speed;
     }
 
-    // Clamp to canvas
     this.x = Math.max(this.radius, Math.min(WIDTH - this.radius, this.x));
     this.y = Math.max(this.radius, Math.min(HEIGHT - this.radius, this.y));
 
-    // Shooting
     if (mouse.down) {
       const now = performance.now();
       if (now - this.lastShot > this.fireRate) {
@@ -83,13 +104,11 @@ class Player {
     const angle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
     ctx.rotate(angle);
 
-    // Body
     ctx.fillStyle = "#4caf50";
     ctx.beginPath();
     ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
     ctx.fill();
 
-    // Gun
     ctx.fillStyle = "#ddd";
     ctx.fillRect(0, -4, this.radius + 10, 8);
 
@@ -144,7 +163,6 @@ class Enemy {
     this.x += Math.cos(angle) * this.speed;
     this.y += Math.sin(angle) * this.speed;
 
-    // Collision with player
     const dist = Math.hypot(this.x - player.x, this.y - player.y);
     if (dist < this.radius + player.radius) {
       this.alive = false;
@@ -170,7 +188,7 @@ class Particle {
     this.y = y;
     this.vx = (Math.random() - 0.5) * 4;
     this.vy = (Math.random() - 0.5) * 4;
-    this.life = 400; // ms
+    this.life = 400;
     this.color = color;
   }
 
@@ -196,6 +214,8 @@ function spawnHitParticles(x, y, color) {
   }
 }
 
+// ---------- Wave spawning ----------
+
 function spawnWave() {
   enemies = [];
   const enemyCount = 4 + wave * 2;
@@ -217,123 +237,191 @@ function spawnWave() {
     }
 
     const speed = 1.2 + wave * 0.2;
-    const health = 20 + wave * 5;
+    const health = 40 + wave * 10;
     enemies.push(new Enemy(x, y, speed, health));
   }
   enemiesLeftEl.textContent = enemies.length;
-  waveEl.textContent = wave;
 }
+
+// ---------- Game control ----------
 
 function startGame() {
   player = new Player();
   bullets = [];
   enemies = [];
   particles = [];
-  wave = 1;
+  resetCurrency();
+  resetGear();
+  resetAbilities();
+  resetWaves();
+  player.applyGearAndHelpers();
   gameRunning = true;
-  messageEl.textContent = "";
-  startBtn.textContent = "Restart";
+  paused = false;
+  setMessage("");
   spawnWave();
-  healthEl.textContent = player.health;
+  updateHealthUI();
   lastTime = performance.now();
   requestAnimationFrame(gameLoop);
 }
 
 function endGame(won) {
   gameRunning = false;
-  messageEl.textContent = won
-    ? `You survived wave ${wave}!`
-    : `You died on wave ${wave}.`;
+  setMessage(
+    won ? `You survived wave ${wave}!` : `You died on wave ${wave}.`
+  );
+  showMainMenu();
+}
+
+// ---------- Level-up UI ----------
+
+function showLevelUpChoices() {
+  const menu = document.getElementById("levelup-menu");
+  const container = document.getElementById("levelup-options");
+  container.innerHTML = "";
+
+  const options = [];
+  while (options.length < 3) {
+    if (Math.random() < 0.5) {
+      const ab = randomFrom(ABILITY_POOL);
+      options.push({ type: "ability", def: ab });
+    } else {
+      const helper = randomFrom(HELPER_POOL);
+      options.push({ type: "helper", def: helper });
+    }
+  }
+
+  options.forEach(opt => {
+    const div = document.createElement("div");
+    div.className = "levelup-option";
+    if (opt.type === "ability") {
+      div.textContent = `Ability: ${opt.def.name}`;
+    } else {
+      div.textContent = `Helper: ${opt.def.name}`;
+    }
+    div.addEventListener("click", () => {
+      if (opt.type === "ability") {
+        const existing = abilities.find(a => a.id === opt.def.id);
+        if (existing) {
+          upgradeAbility(existing);
+        } else {
+          addAbility(opt.def);
+        }
+      } else {
+        addHelper(opt.def);
+        if (player) player.applyGearAndHelpers();
+      }
+      menu.classList.add("hidden");
+    });
+    container.appendChild(div);
+  });
+
+  menu.classList.remove("hidden");
+}
+
+// ---------- Update / Draw ----------
+
+function updateHealthUI() {
+  if (healthEl && player) {
+    healthEl.textContent = Math.round(player.health);
+  }
 }
 
 function update(dt) {
-  if (!gameRunning) return;
+  if (!gameRunning || paused) return;
 
+  player.applyGearAndHelpers();
   player.update(dt);
 
-  bullets.forEach((b) => b.update(dt));
-  bullets = bullets.filter((b) => b.alive);
+  bullets.forEach(b => b.update(dt));
+  bullets = bullets.filter(b => b.alive);
 
-  enemies.forEach((e) => e.update(dt));
-  enemies = enemies.filter((e) => e.alive);
+  enemies.forEach(e => e.update(dt));
+  enemies = enemies.filter(e => e.alive);
 
-  // Bullet–enemy collisions
-  bullets.forEach((b) => {
-    enemies.forEach((e) => {
+  bullets.forEach(b => {
+    enemies.forEach(e => {
       const dist = Math.hypot(b.x - e.x, b.y - e.y);
       if (dist < b.radius + e.radius && e.alive && b.alive) {
-        e.health -= 20;
+        let bulletDamage = 20;
+        if (equippedWeapon) {
+          bulletDamage = equippedWeapon.stats.damage;
+        }
+        e.health -= bulletDamage;
         b.alive = false;
         spawnHitParticles(e.x, e.y, "#ffeb3b");
         if (e.health <= 0) {
           e.alive = false;
+          onEnemyKilled();
+          addCoins(5 + wave);
         }
       }
     });
   });
 
-  enemies = enemies.filter((e) => e.alive);
-  bullets = bullets.filter((b) => b.alive);
+  enemies = enemies.filter(e => e.alive);
+  bullets = bullets.filter(b => b.alive);
 
-  particles.forEach((p) => p.update(dt));
-  particles = particles.filter((p) => p.life > 0);
+  particles.forEach(p => p.update(dt));
+  particles = particles.filter(p => p.life > 0);
 
   enemiesLeftEl.textContent = enemies.length;
-  healthEl.textContent = player.health;
+  updateHealthUI();
 
-  // Wave cleared
+  updateAbilities(dt);
+
   if (enemies.length === 0 && gameRunning) {
-    wave++;
+    nextWave();
     spawnWave();
   }
 }
 
 function draw() {
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
-
   if (!player) return;
 
   player.draw();
-  bullets.forEach((b) => b.draw());
-  enemies.forEach((e) => e.draw());
-  particles.forEach((p) => p.draw());
+  bullets.forEach(b => b.draw());
+  enemies.forEach(e => e.draw());
+  particles.forEach(p => p.draw());
 }
 
 function gameLoop(timestamp) {
   const dt = timestamp - lastTime;
   lastTime = timestamp;
 
-  update(dt);
-  draw();
-
   if (gameRunning) {
+    update(dt);
+    draw();
     requestAnimationFrame(gameLoop);
   }
 }
 
-// Input handling
-window.addEventListener("keydown", (e) => {
+// ---------- Input ----------
+
+window.addEventListener("keydown", e => {
   keys[e.key] = true;
 });
 
-window.addEventListener("keyup", (e) => {
+window.addEventListener("keyup", e => {
   keys[e.key] = false;
 });
 
-canvas.addEventListener("mousemove", (e) => {
+canvas.addEventListener("mousemove", e => {
   const rect = canvas.getBoundingClientRect();
   mouse.x = e.clientX - rect.left;
   mouse.y = e.clientY - rect.top;
 });
 
-canvas.addEventListener("mousedown", (e) => {
+canvas.addEventListener("mousedown", e => {
   if (e.button === 0) mouse.down = true;
 });
 
-canvas.addEventListener("mouseup", (e) => {
+canvas.addEventListener("mouseup", e => {
   if (e.button === 0) mouse.down = false;
 });
 
-startBtn.addEventListener("click", () => {
-  startGame();
-});
+// ---------- Init ----------
+
+hookMenuButtons();
+hookChestButtons();
+showMainMenu();

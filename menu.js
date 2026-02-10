@@ -27,9 +27,21 @@ function quitToMenu() {
   showMainMenu();
 }
 
+function showDeathScreen() {
+  const menu = document.getElementById("death-menu");
+  const summary = document.getElementById("death-summary");
+  summary.textContent = `You died on wave ${wave}, level ${playerLevel}, with ${coins} coins.`;
+  menu.classList.remove("hidden");
+}
+
+function hideDeathScreen() {
+  document.getElementById("death-menu").classList.add("hidden");
+}
+
 function hookMenuButtons() {
   document.getElementById("play-btn").addEventListener("click", () => {
     hideMainMenu();
+    hideDeathScreen();
     startGame();
   });
 
@@ -41,9 +53,19 @@ function hookMenuButtons() {
     quitToMenu();
   });
 
+  document.getElementById("death-restart-btn").addEventListener("click", () => {
+    hideDeathScreen();
+    hideMainMenu();
+    startGame();
+  });
+
+  document.getElementById("death-menu-btn").addEventListener("click", () => {
+    hideDeathScreen();
+    showMainMenu();
+  });
+
   window.addEventListener("keydown", e => {
-    if (e.key === "Escape") {
-      if (!gameRunning) return;
+    if (e.key === "Escape" && gameRunning) {
       paused ? resumeGame() : pauseGame();
     }
   });

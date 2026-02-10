@@ -57,6 +57,63 @@ class Player {
     this.health = Math.min(this.health, this.maxHealth);
 
     this.speed = this.baseSpeed * moveMult;
+    // ===============================
+  // SET BONUSES
+  // ===============================
+  const setCounts = getSetCounts();
+  const legendarySets = getLegendarySets();
+
+// Knight: defense
+if (setCounts["Knight"] >= 2) {
+  this.maxHealth += 10; // small HP bump
+}
+if (legendarySets["Knight"]) {
+  this.thorns = 0.10; // reflect 10% damage
+} else {
+  this.thorns = 0;
+}
+
+// Rogue: speed
+if (setCounts["Rogue"] >= 2) {
+  this.speed *= 1.10;
+}
+if (legendarySets["Rogue"]) {
+  this.dodgeChance = 0.10;
+} else {
+  this.dodgeChance = 0;
+}
+
+// Mage: ability damage
+if (setCounts["Mage"] >= 2) {
+  this.abilityDamageBonus = 0.10;
+} else {
+  this.abilityDamageBonus = 0;
+}
+if (legendarySets["Mage"]) {
+  this.cooldownBonus = 0.10;
+} else {
+  this.cooldownBonus = 0;
+}
+
+// Guardian: tank
+if (setCounts["Guardian"] >= 2) {
+  this.maxHealth += 20;
+}
+if (legendarySets["Guardian"]) {
+  this.regenBonus = 1; // 1 HP/sec
+} else {
+  this.regenBonus = 0;
+}
+
+// Berserker: offense
+if (setCounts["Berserker"] >= 2) {
+  this.fireRate *= 0.90; // faster attacks
+}
+if (legendarySets["Berserker"]) {
+  this.bonusWeaponDamage = 0.10;
+} else {
+  this.bonusWeaponDamage = 0;
+}
 
     if (equippedWeapon) {
       this.fireRate = this.baseFireRate / (equippedWeapon.stats.attackSpeed * atkSpeedMult);

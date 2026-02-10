@@ -7,6 +7,7 @@ function addItemToInventory(item) {
   item._new = true;
   inventoryItems.push(item);
   updateInventoryUI();
+  saveInventory();
 }
 
 function getInventoryItems() {
@@ -100,6 +101,7 @@ function inventoryMoveSelected() {
   equipItem(item);
   clearNewFlag(item);
   updateInventoryUI();
+  saveInventory();
 }
 
 function inventoryMergeSelected() {
@@ -138,6 +140,7 @@ function inventoryMergeSelected() {
 
   setMessage("Items merged!");
   updateInventoryUI();
+  saveInventory();
 }
 
 function hookInventoryButtons() {
@@ -157,3 +160,28 @@ document.addEventListener("DOMContentLoaded", () => {
   updateEquippedUI();
 });
 
+function saveInventory() {
+  const data = {
+    inventory: inventoryItems,
+    equippedArmor,
+    equippedWeapon,
+    coins
+  };
+  localStorage.setItem("waveSave", JSON.stringify(data));
+}
+
+function loadInventory() {
+  const raw = localStorage.getItem("waveSave");
+  if (!raw) return;
+
+  const data = JSON.parse(raw);
+
+  inventoryItems = data.inventory || [];
+  equippedArmor = data.equippedArmor || {};
+  equippedWeapon = data.equippedWeapon || null;
+  coins = data.coins || 0;
+
+  updateInventoryUI();
+  updateGearUI();
+  updateCurrencyUI();
+}

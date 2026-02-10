@@ -13,13 +13,11 @@ function resetWaves() {
 }
 
 function updateWaveUI() {
-  const el = document.getElementById("wave");
-  if (el) el.textContent = wave;
+  document.getElementById("wave").textContent = wave;
 }
 
 function updateLevelUI() {
-  const el = document.getElementById("player-level");
-  if (el) el.textContent = playerLevel;
+  document.getElementById("player-level").textContent = playerLevel;
 }
 
 function onEnemyKilled() {

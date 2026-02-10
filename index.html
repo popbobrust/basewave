@@ -13,7 +13,6 @@ window.onerror = function(msg, url, line, col, error) {
 
 <body>
   <div id="ui">
-    <h1>Wave Survival</h1>
     <div class="stats">
       <span>Health: <span id="health">100</span></span>
       <span>Wave: <span id="wave">1</span></span>
@@ -23,24 +22,23 @@ window.onerror = function(msg, url, line, col, error) {
     </div>
 
     <div id="gear-info"></div>
-
     <div id="abilities-bar"></div>
-
     <div id="message"></div>
   </div>
 
   <div id="main-menu" class="menu fullscreen">
-  <h1>Wave Survival</h1>
+    <h1>Wave Survival</h1>
 
-  <div class="chests">
-    <button class="chest-btn" data-type="basic">Open Basic (50)</button>
-    <button class="chest-btn" data-type="advanced">Open Advanced (150)</button>
-    <button class="chest-btn" data-type="elite">Open Elite (400)</button>
+    <button id="play-btn">Play</button>
+    <button id="inventory-btn">Inventory</button>
+    <button id="highscores-btn">High Scores</button>
+
+    <div class="chests">
+      <button class="chest-btn" data-type="basic">Crate 1 (Basic)</button>
+      <button class="chest-btn" data-type="advanced">Crate 2 (Advanced)</button>
+      <button class="chest-btn" data-type="elite">Crate 3 (Elite)</button>
+    </div>
   </div>
-
-  <button id="play-btn">Play</button>
-</div>
-
 
   <div id="pause-menu" class="menu hidden fullscreen">
     <h2>Paused</h2>
@@ -53,6 +51,7 @@ window.onerror = function(msg, url, line, col, error) {
     <p>Choose an ability or helper:</p>
     <div id="levelup-options"></div>
   </div>
+
   <div id="death-menu" class="menu hidden fullscreen">
     <h2>You Died</h2>
     <p id="death-summary"></p>
@@ -60,15 +59,53 @@ window.onerror = function(msg, url, line, col, error) {
     <button id="death-menu-btn">Back to Main Menu</button>
   </div>
 
+  <!-- Inventory Panel -->
+  <div id="inventory-menu" class="menu hidden fullscreen">
+    <h2>Inventory</h2>
+    <div style="display:flex; gap:16px; max-width:800px;">
+      <!-- Equipped -->
+      <div style="flex:1; border-right:1px solid #555; padding-right:10px;">
+        <h3>Equipped</h3>
+        <div id="equipped-slots">
+          <div data-slot="helmet">Helmet: <span class="slot-item">None</span></div>
+          <div data-slot="chest">Chest: <span class="slot-item">None</span></div>
+          <div data-slot="legs">Legs: <span class="slot-item">None</span></div>
+          <div data-slot="boots">Boots: <span class="slot-item">None</span></div>
+          <div data-slot="gloves">Gloves: <span class="slot-item">None</span></div>
+          <div data-slot="weapon">Weapon: <span class="slot-item">None</span></div>
+        </div>
+      </div>
+
+      <!-- Inventory List -->
+      <div style="flex:2;">
+        <h3>Items</h3>
+        <div id="inventory-list" style="max-height:260px; overflow-y:auto; border:1px solid #555; padding:6px;"></div>
+        <div id="inventory-actions" style="margin-top:10px;">
+          <button id="inv-keep-btn">Keep</button>
+          <button id="inv-move-btn">Move (Equip)</button>
+          <button id="inv-merge-btn">Merge</button>
+          <button id="inv-close-btn">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Crate Popup -->
+  <div id="crate-popup" class="menu hidden fullscreen">
+    <h2>Crate Opened!</h2>
+    <p id="crate-item-text"></p>
+    <button id="crate-ok-btn">OK</button>
+  </div>
+
   <canvas id="gameCanvas" width="800" height="500"></canvas>
 
-  <!-- Scripts: order matters -->
   <script src="currency.js"></script>
   <script src="gear.js"></script>
   <script src="chests.js"></script>
   <script src="abilities.js"></script>
   <script src="waves.js"></script>
   <script src="menu.js"></script>
+  <script src="inventory.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

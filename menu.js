@@ -69,6 +69,13 @@ function hookMenuButtons() {
       paused ? resumeGame() : pauseGame();
     }
   });
+  const invBtn = document.getElementById("inventory-btn");
+  if (invBtn) {
+    invBtn.addEventListener("click", () => {
+      openInventory();
+    });
+  }
+
 }
 
 function setMessage(text) {

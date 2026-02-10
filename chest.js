@@ -12,7 +12,6 @@ function openChest(type) {
     return;
   }
 
-  // 70% armor, 30% weapon
   let item;
   if (Math.random() < 0.7) {
     item = createArmor(type);

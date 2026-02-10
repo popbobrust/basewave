@@ -1,3 +1,7 @@
+// ===============================
+// GAME CORE (FULL REWRITE)
+// ===============================
+
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -17,25 +21,29 @@ let particles = [];
 
 let lastTime = 0;
 
-// ---------- Player / Enemy / Bullet / Particle ----------
+// ===============================
+// PLAYER
+// ===============================
 
 class Player {
   constructor() {
     this.x = WIDTH / 2;
     this.y = HEIGHT / 2;
     this.radius = 15;
+
     this.baseSpeed = 3;
     this.speed = this.baseSpeed;
+
     this.baseHealth = 100;
     this.maxHealth = this.baseHealth;
     this.health = this.maxHealth;
+
     this.baseFireRate = 200;
     this.fireRate = this.baseFireRate;
     this.lastShot = 0;
   }
 
   applyGearAndHelpers() {
-    const bonuses = getSetBonuses();
     const moveMult = getMoveSpeedMult();
     const atkSpeedMult = getAttackSpeedMult();
 
@@ -44,21 +52,21 @@ class Player {
       const item = equippedArmor[slot];
       if (item) extraHealth += item.stats.health;
     }
+
+    this.maxHealth = this.baseHealth + extraHealth;
+    this.health = Math.min(this.health, this.maxHealth);
+
+    this.speed = this.baseSpeed * moveMult;
+
     if (equippedWeapon) {
-      this.fireRate =
-        this.baseFireRate / (equippedWeapon.stats.attackSpeed * atkSpeedMult);
+      this.fireRate = this.baseFireRate / (equippedWeapon.stats.attackSpeed * atkSpeedMult);
     } else {
       this.fireRate = this.baseFireRate / atkSpeedMult;
     }
-
-    this.maxHealth = (this.baseHealth + extraHealth) * bonuses.healthMult;
-    this.health = Math.min(this.health, this.maxHealth);
-    this.speed = this.baseSpeed * moveMult;
   }
 
   update(dt) {
-    let dx = 0;
-    let dy = 0;
+    let dx = 0, dy = 0;
 
     if (keys["w"] || keys["ArrowUp"]) dy -= 1;
     if (keys["s"] || keys["ArrowDown"]) dy += 1;
@@ -86,16 +94,35 @@ class Player {
   }
 
   shoot() {
+    // 360° melee sword
+    if (equippedWeapon && equippedWeapon.name === "Soulblade") {
+      const range = 80;
+      const dmg = equippedWeapon.stats.damage;
+
+      enemies.forEach(e => {
+        if (!e.alive) return;
+        if (Math.hypot(e.x - this.x, e.y - this.y) < range) {
+          e.health -= dmg;
+          spawnHitParticles(e.x, e.y, "#ffffff");
+          if (e.health <= 0) {
+            e.alive = false;
+            onEnemyKilled();
+            addCoins(5 + wave);
+          }
+        }
+      });
+
+      return;
+    }
+
+    // Default gun
     const angle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
-    const speed = 7;
-    bullets.push(
-      new Bullet(
-        this.x,
-        this.y,
-        Math.cos(angle) * speed,
-        Math.sin(angle) * speed
-      )
-    );
+    bullets.push(new Bullet(
+      this.x,
+      this.y,
+      Math.cos(angle) * 7,
+      Math.sin(angle) * 7
+    ));
   }
 
   draw() {
@@ -115,6 +142,10 @@ class Player {
     ctx.restore();
   }
 }
+
+// ===============================
+// BULLET
+// ===============================
 
 class Bullet {
   constructor(x, y, vx, vy) {
@@ -148,6 +179,10 @@ class Bullet {
   }
 }
 
+// ===============================
+// ENEMY
+// ===============================
+
 class Enemy {
   constructor(x, y, speed, health) {
     this.x = x;
@@ -166,8 +201,13 @@ class Enemy {
     const dist = Math.hypot(this.x - player.x, this.y - player.y);
     if (dist < this.radius + player.radius) {
       this.alive = false;
-      player.health -= 10;
+
+      const armor = getTotalArmor();
+      const reduced = Math.max(4, 10 - armor * 0.3);
+
+      player.health -= reduced;
       spawnHitParticles(this.x, this.y, "#f44336");
+
       if (player.health <= 0) {
         endGame(false);
       }
@@ -181,6 +221,10 @@ class Enemy {
     ctx.fill();
   }
 }
+
+// ===============================
+// PARTICLES
+// ===============================
 
 class Particle {
   constructor(x, y, color) {
@@ -209,70 +253,78 @@ class Particle {
 
 function spawnHitParticles(x, y, color) {
   for (let i = 0; i < 8; i++) {
-    const p = new Particle(x, y, color);
-    particles.push(p);
+    particles.push(new Particle(x, y, color));
   }
 }
 
-// ---------- Wave spawning ----------
+// ===============================
+// WAVE SPAWNING
+// ===============================
 
 function spawnWave() {
   enemies = [];
   const enemyCount = 4 + wave * 2;
+
   for (let i = 0; i < enemyCount; i++) {
     let x, y;
     const edge = Math.floor(Math.random() * 4);
-    if (edge === 0) {
-      x = Math.random() * WIDTH;
-      y = -20;
-    } else if (edge === 1) {
-      x = WIDTH + 20;
-      y = Math.random() * HEIGHT;
-    } else if (edge === 2) {
-      x = Math.random() * WIDTH;
-      y = HEIGHT + 20;
-    } else {
-      x = -20;
-      y = Math.random() * HEIGHT;
-    }
+
+    if (edge === 0) { x = Math.random() * WIDTH; y = -20; }
+    else if (edge === 1) { x = WIDTH + 20; y = Math.random() * HEIGHT; }
+    else if (edge === 2) { x = Math.random() * WIDTH; y = HEIGHT + 20; }
+    else { x = -20; y = Math.random() * HEIGHT; }
 
     const speed = 1.2 + wave * 0.2;
     const health = 30 + wave * 8;
+
     enemies.push(new Enemy(x, y, speed, health));
   }
+
   enemiesLeftEl.textContent = enemies.length;
 }
 
-// ---------- Game control ----------
+// ===============================
+// GAME CONTROL
+// ===============================
 
 function startGame() {
   player = new Player();
   bullets = [];
   enemies = [];
   particles = [];
-  resetCurrency();
-  resetGear();
+
+  // Persistent gear + coins
   resetAbilities();
   resetWaves();
+
   player.applyGearAndHelpers();
+
   gameRunning = true;
   paused = false;
   setMessage("");
+
   spawnWave();
   updateHealthUI();
+
   lastTime = performance.now();
   requestAnimationFrame(gameLoop);
 }
 
 function endGame(won) {
   gameRunning = false;
-  setMessage(
-    won ? `You survived wave ${wave}!` : `You died on wave ${wave}.`
-  );
-  showMainMenu();
+
+  if (won) {
+    setMessage(`You survived wave ${wave}!`);
+    showMainMenu();
+  } else {
+    setMessage(`You died on wave ${wave}.`);
+    showDeathScreen();
+  }
 }
 
-// ---------- Level-up UI ----------
+// ===============================
+// LEVEL-UP MENU
+// ===============================
 
 function showLevelUpChoices() {
   paused = true;
@@ -282,13 +334,21 @@ function showLevelUpChoices() {
   container.innerHTML = "";
 
   const options = [];
+  const used = new Set();
+
   while (options.length < 3) {
-    if (Math.random() < 0.6) {
+    const isAbility = Math.random() < 0.6;
+
+    if (isAbility) {
       const ab = randomFrom(ABILITY_POOL);
+      if (used.has("ab_" + ab.id)) continue;
+      used.add("ab_" + ab.id);
       options.push({ type: "ability", def: ab });
     } else {
-      const helper = randomFrom(HELPER_POOL);
-      options.push({ type: "helper", def: helper });
+      const h = randomFrom(HELPER_POOL);
+      if (used.has("h_" + h.id)) continue;
+      used.add("h_" + h.id);
+      options.push({ type: "helper", def: h });
     }
   }
 
@@ -304,13 +364,16 @@ function showLevelUpChoices() {
 
     if (opt.type === "ability") {
       const existing = abilities.find(a => a.id === opt.def.id);
-      const level = existing ? existing.level : 0;
+      const nextLevel = Math.min((existing ? existing.level : 0) + 1, 5);
+
       title.textContent = `Ability: ${opt.def.name}`;
-      stars.textContent =
-        "★".repeat(level || 1) + "☆".repeat(5 - (level || 1));
+      stars.textContent = "★".repeat(nextLevel) + "☆".repeat(5 - nextLevel);
     } else {
+      const existing = helpers.find(h => h.id === opt.def.id);
+      const nextLevel = Math.min((existing ? existing.level : 0) + 1, 5);
+
       title.textContent = `Helper: ${opt.def.name}`;
-      stars.textContent = "";
+      stars.textContent = "★".repeat(nextLevel) + "☆".repeat(5 - nextLevel);
     }
 
     div.appendChild(title);
@@ -319,15 +382,13 @@ function showLevelUpChoices() {
     div.addEventListener("click", () => {
       if (opt.type === "ability") {
         const existing = abilities.find(a => a.id === opt.def.id);
-        if (existing) {
-          upgradeAbility(existing);
-        } else {
-          addAbility(opt.def);
-        }
+        if (existing) upgradeAbility(existing);
+        else addAbility(opt.def);
       } else {
         addHelper(opt.def);
-        if (player) player.applyGearAndHelpers();
+        player.applyGearAndHelpers();
       }
+
       menu.classList.add("hidden");
       paused = false;
     });
@@ -338,12 +399,12 @@ function showLevelUpChoices() {
   menu.classList.remove("hidden");
 }
 
-// ---------- Update / Draw ----------
+// ===============================
+// UPDATE / DRAW
+// ===============================
 
 function updateHealthUI() {
-  if (healthEl && player) {
-    healthEl.textContent = Math.round(player.health);
-  }
+  healthEl.textContent = Math.round(player.health);
 }
 
 function update(dt) {
@@ -360,15 +421,13 @@ function update(dt) {
 
   bullets.forEach(b => {
     enemies.forEach(e => {
-      const dist = Math.hypot(b.x - e.x, b.y - e.y);
-      if (dist < b.radius + e.radius && e.alive && b.alive) {
-        let bulletDamage = 20;
-        if (equippedWeapon) {
-          bulletDamage = equippedWeapon.stats.damage;
-        }
-        e.health -= bulletDamage;
+      if (!e.alive) return;
+      if (Math.hypot(b.x - e.x, b.y - e.y) < b.radius + e.radius) {
+        const dmg = equippedWeapon ? equippedWeapon.stats.damage : 20;
+        e.health -= dmg;
         b.alive = false;
         spawnHitParticles(e.x, e.y, "#ffeb3b");
+
         if (e.health <= 0) {
           e.alive = false;
           onEnemyKilled();
@@ -377,9 +436,6 @@ function update(dt) {
       }
     });
   });
-
-  enemies = enemies.filter(e => e.alive);
-  bullets = bullets.filter(b => b.alive);
 
   particles.forEach(p => p.update(dt));
   particles = particles.filter(p => p.life > 0);
@@ -397,6 +453,7 @@ function update(dt) {
 
 function draw() {
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
   if (!player) return;
 
   player.draw();
@@ -417,15 +474,12 @@ function gameLoop(timestamp) {
   }
 }
 
-// ---------- Input ----------
+// ===============================
+// INPUT
+// ===============================
 
-window.addEventListener("keydown", e => {
-  keys[e.key] = true;
-});
-
-window.addEventListener("keyup", e => {
-  keys[e.key] = false;
-});
+window.addEventListener("keydown", e => keys[e.key] = true);
+window.addEventListener("keyup", e => keys[e.key] = false);
 
 canvas.addEventListener("mousemove", e => {
   const rect = canvas.getBoundingClientRect();
@@ -441,7 +495,9 @@ canvas.addEventListener("mouseup", e => {
   if (e.button === 0) mouse.down = false;
 });
 
-// ---------- Init ----------
+// ===============================
+// INIT
+// ===============================
 
 hookMenuButtons();
 hookChestButtons();

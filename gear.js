@@ -71,6 +71,7 @@ function equipItem(item) {
   }
   updateGearUI();
   updateEquippedUI && updateEquippedUI();
+  saveInventory && saveInventory();
 }
 
 function tryMerge(a, b) {

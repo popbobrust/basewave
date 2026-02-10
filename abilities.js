@@ -197,23 +197,17 @@ function spawnGuardianOrbs(ab, damage) {
   const radius = 60 + ab.level * 10;
   const speed = ab.evolved ? 0.008 : 0.004;
 
-  if (guardianOrbs.length === 0) {
-    for (let i = 0; i < count; i++) {
-      guardianOrbs.push({
-        angle: (Math.PI * 2 * i) / count,
-        radius,
-        damage,
-        speed
-      });
-    }
-  } else {
-    guardianOrbs.forEach(o => {
-      o.radius = radius;
-      o.damage = damage;
-      o.speed = speed;
+  guardianOrbs = [];
+  for (let i = 0; i < count; i++) {
+    guardianOrbs.push({
+      angle: (Math.PI * 2 * i) / count,
+      radius,
+      damage,
+      speed
     });
   }
 }
+
 
 function updateGuardianOrbs(dt) {
   if (!player) return;

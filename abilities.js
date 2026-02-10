@@ -293,9 +293,9 @@ function updateMolotovPools(dt) {
       if (!e.alive) return;
       if (Math.hypot(e.x - p.x, e.y - p.y) < p.radius) {
         e.health -= p.damage * (dt / 1000) * 3;
+        spawnHitParticles(e.x, e.y, "#ff7043"); // same style as other damage
         if (e.health <= 0) {
           e.alive = false;
-          spawnHitParticles(e.x, e.y, "#ff7043");
           onEnemyKilled();
           addCoins(5 + wave);
         }
@@ -306,32 +306,42 @@ function updateMolotovPools(dt) {
 }
 
 // ===============================
-// DRONE
+// DRONE (REWORK)
 // ===============================
 
 function spawnDroneShot(ab, damage) {
-  const speed = 9 + ab.level * 1.2;
-
-  if (!ab.evolved) {
-    const angle = performance.now() / 200;
-    droneBullets.push({
-      x: player.x,
-      y: player.y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      damage,
-      life: 1200
-    });
-  } else {
-    droneBullets.push(
-      { x: player.x, y: player.y, vx: speed, vy: 0, damage, life: 1200 },
-      { x: player.x, y: player.y, vx: -speed, vy: 0, damage, life: 1200 }
-    );
-  }
+  // handled in updateDroneBullets via continuous firing
 }
 
+let droneMissileTimer = 0;
+
 function updateDroneBullets(dt) {
-  droneAngle += 0.01 * dt;
+  droneAngle += 0.002 * dt;
+
+  const droneAb = abilities.find(a => a.id === "drone");
+  if (droneAb && player) {
+    const fireInterval = droneAb.evolved ? 120 : 180;
+    droneMissileTimer += dt;
+    while (droneMissileTimer >= fireInterval) {
+      droneMissileTimer -= fireInterval;
+
+      const baseAngle = droneAngle;
+      const angles = droneAb.evolved ? [baseAngle + 0.09, baseAngle - 0.09] : [baseAngle + 0.09, baseAngle + 0.17];
+
+      angles.forEach(a => {
+        const speed = 4;
+        droneBullets.push({
+          x: player.x + Math.cos(droneAngle) * 40,
+          y: player.y + Math.sin(droneAngle) * 40,
+          vx: Math.cos(a) * speed,
+          vy: Math.sin(a) * speed,
+          damage: droneAb.basePower * (1 + (droneAb.level - 1) * 0.5) * getAbilityDamageMult(),
+          life: 900,
+          radius: 18
+        });
+      });
+    }
+  }
 
   droneBullets.forEach(b => {
     b.life -= dt;
@@ -340,7 +350,7 @@ function updateDroneBullets(dt) {
 
     enemies.forEach(e => {
       if (!e.alive) return;
-      if (Math.hypot(e.x - b.x, e.y - b.y) < 14) {
+      if (Math.hypot(e.x - b.x, e.y - b.y) < b.radius) {
         e.health -= b.damage;
         spawnHitParticles(e.x, e.y, "#ffee58");
         b.life = 0;
@@ -385,7 +395,7 @@ function drawAbilities(ctx) {
 
   // Molotov pools
   molotovPools.forEach(p => {
-    ctx.fillStyle = "rgba(255,112,67,0.5)";
+    ctx.fillStyle = "rgba(255,112,67,0.3)";
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
     ctx.fill();
@@ -393,7 +403,7 @@ function drawAbilities(ctx) {
 
   // Drone body
   const droneAb = abilities.find(a => a.id === "drone");
-  if (droneAb) {
+  if (droneAb && player) {
     const radius = 40;
     const x = player.x + Math.cos(droneAngle) * radius;
     const y = player.y + Math.sin(droneAngle) * radius;
@@ -403,14 +413,15 @@ function drawAbilities(ctx) {
     ctx.fill();
   }
 
-  // Drone bullets
+  // Drone missiles
   droneBullets.forEach(b => {
     ctx.fillStyle = "#ffee58";
     ctx.beginPath();
-    ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
+    ctx.arc(b.x, b.y, 5, 0, Math.PI * 2);
     ctx.fill();
   });
 }
+
 
 // ===============================
 // ABILITY BAR UI

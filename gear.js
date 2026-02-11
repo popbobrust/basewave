@@ -5,7 +5,6 @@ const TIER_NAMES = ["Common", "Uncommon", "Rare", "Epic", "Legendary"];
 let equippedArmor = {};
 let equippedWeapon = null;
 
-
 const WEAPON_POOL = [
   {
     id: "soulblade",
@@ -15,7 +14,17 @@ const WEAPON_POOL = [
   {
     id: "stormbow",
     name: "Stormbow",
-    evoReq: "storm_core" // not used yet, but ready
+    evoReq: "storm_core"
+  },
+  {
+    id: "flamethrower",
+    name: "Flamethrower",
+    evoReq: "flame_core"
+  },
+  {
+    id: "railgun",
+    name: "Railgun",
+    evoReq: "rail_core"
   }
 ];
 
@@ -133,7 +142,7 @@ function updateGearUI() {
 
   text += " | Weapon: ";
   text += equippedWeapon
-    ? `${equippedWeapon.name} ${TIER_NAMES[equippedWeapon.tier]}`
+    ? `${equippedWeapon.name} ${TIER_NAMES[equippedWeapon.tier]}${equippedWeapon.evolved ? " +" : ""}`
     : "none";
 
   el.textContent = text;
@@ -143,7 +152,7 @@ function describeItem(item) {
   if (item.kind === "armor") {
     return `${item.set} ${item.slot} (${TIER_NAMES[item.tier]})`;
   } else {
-    return `${item.name} (${TIER_NAMES[item.tier]})`;
+    return `${item.name} (${TIER_NAMES[item.tier]}${item.evolved ? " +" : ""})`;
   }
 }
 

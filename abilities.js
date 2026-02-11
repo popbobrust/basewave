@@ -49,6 +49,7 @@ const ABILITY_POOL = [
 
 // Helper definitions (stat + secondary evo helpers)
 const HELPER_POOL = [
+  // Stat helpers
   { id: "atk_speed", name: "Attack Speed Up" },
   { id: "move_speed", name: "Move Speed Up" },
   { id: "damage_up", name: "Damage Up" },
@@ -56,11 +57,17 @@ const HELPER_POOL = [
   { id: "regen", name: "Health Regen" },
   { id: "crit", name: "Crit Chance" },
 
-  // Secondary abilities (evo keys)
+  // Ability evo keys
   { id: "guardian_core", name: "Guardian Core" },
   { id: "forcefield_core", name: "Stabilizer Field" },
   { id: "molotov_core", name: "Fuel Mix" },
-  { id: "drone_core", name: "Overclock Module" }
+  { id: "drone_core", name: "Overclock Module" },
+
+  // Weapon evo keys
+  { id: "berserker_core", name: "Berserker Core" },   // Soulblade
+  { id: "storm_core", name: "Storm Core" },           // Stormbow
+  { id: "flame_core", name: "Flame Core" },           // Flamethrower
+  { id: "rail_core", name: "Rail Core" }              // Railgun
 ];
 
 // ===============================
@@ -101,7 +108,7 @@ function upgradeAbility(ab) {
   if (ab.level >= 5) return;
   ab.level = Math.min(ab.level + 1, 5);
 
-  // Evo only when hitting 5★ via merge and having the correct secondary
+  // Evo only when hitting 5★ and secondary is also 5★
   if (ab.level === 5) {
     evolveAbilityIfPossible(ab);
   }
@@ -185,10 +192,11 @@ function applyRegen(dt) {
 // ===============================
 
 function evolveAbilityIfPossible(ab) {
-  // Rule: must be 5★ and have the corresponding secondary ability
-  if (!ab.evolved && ab.level === 5 && ab.evoReq && hasHelper(ab.evoReq)) {
-    ab.evolved = true;
-  }
+  // Rule: must be 5★ and have the corresponding secondary at 5★
+  if (!ab.evoReq) return;
+  if (ab.level !== 5) return;
+  if (getHelperLevel(ab.evoReq) !== 5) return;
+  ab.evolved = true;
 }
 
 // ===============================

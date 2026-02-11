@@ -115,9 +115,11 @@ class Player {
       this.bonusWeaponDamage = 0.10;
     }
 
-    // Weapon evo: if weapon has evoReq and corresponding helper exists
-    if (equippedWeapon && equippedWeapon.evoReq && hasHelper(equippedWeapon.evoReq)) {
-      equippedWeapon.evolved = true;
+    // Weapon evo: require helper at 5★ and weapon at max tier
+    if (equippedWeapon && equippedWeapon.evoReq) {
+      if (getHelperLevel(equippedWeapon.evoReq) === 5 && equippedWeapon.tier === 4) {
+        equippedWeapon.evolved = true;
+      }
     }
 
     if (equippedWeapon) {
@@ -156,9 +158,11 @@ class Player {
   }
 
   shoot() {
+    const angle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
+
     if (equippedWeapon && equippedWeapon.id === "soulblade") {
       const range = equippedWeapon.evolved ? 110 : 80;
-      const dmg = equippedWeapon.stats.damage * (1 + (this.bonusWeaponDamage || 0));
+      const dmg = equippedWeapon.stats.damage * (1 + (this.bonusWeaponDamage || 0)) * (equippedWeapon.evolved ? 1.4 : 1);
 
       enemies.forEach(e => {
         if (!e.alive) return;
@@ -177,19 +181,58 @@ class Player {
     }
 
     if (equippedWeapon && equippedWeapon.id === "stormbow") {
-      const angle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
       const speed = 8;
+      const spread = equippedWeapon.evolved ? 0.18 : 0.08;
+      const count = equippedWeapon.evolved ? 3 : 1;
+
+      for (let i = 0; i < count; i++) {
+        const offset = (i - (count - 1) / 2) * spread;
+        bullets.push(new Bullet(
+          this.x,
+          this.y,
+          Math.cos(angle + offset) * speed,
+          Math.sin(angle + offset) * speed,
+          true
+        ));
+      }
+      return;
+    }
+
+    if (equippedWeapon && equippedWeapon.id === "flamethrower") {
+      const cone = equippedWeapon.evolved ? 0.7 : 0.5;
+      const rays = equippedWeapon.evolved ? 10 : 6;
+      const speed = 5;
+
+      for (let i = 0; i < rays; i++) {
+        const t = (i / (rays - 1)) - 0.5;
+        const a = angle + t * cone;
+        bullets.push(new Bullet(
+          this.x,
+          this.y,
+          Math.cos(a) * speed,
+          Math.sin(a) * speed,
+          false,
+          true // flame
+        ));
+      }
+      return;
+    }
+
+    if (equippedWeapon && equippedWeapon.id === "railgun") {
+      const speed = 14;
       bullets.push(new Bullet(
         this.x,
         this.y,
         Math.cos(angle) * speed,
         Math.sin(angle) * speed,
-        true
+        true,
+        false,
+        true // rail
       ));
       return;
     }
 
-    const angle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
+    // Default gun
     bullets.push(new Bullet(
       this.x,
       this.y,
@@ -222,14 +265,16 @@ class Player {
 // ===============================
 
 class Bullet {
-  constructor(x, y, vx, vy, piercing = false) {
+  constructor(x, y, vx, vy, piercing = false, flame = false, rail = false) {
     this.x = x;
     this.y = y;
-    this.radius = 4;
+    this.radius = flame ? 5 : 4;
     this.vx = vx;
     this.vy = vy;
     this.alive = true;
     this.piercing = piercing;
+    this.flame = flame;
+    this.rail = rail;
   }
 
   update(dt) {
@@ -237,17 +282,23 @@ class Bullet {
     this.y += this.vy;
 
     if (
-      this.x < -10 ||
-      this.x > WIDTH + 10 ||
-      this.y < -10 ||
-      this.y > HEIGHT + 10
+      this.x < -20 ||
+      this.x > WIDTH + 20 ||
+      this.y < -20 ||
+      this.y > HEIGHT + 20
     ) {
       this.alive = false;
     }
   }
 
   draw() {
-    ctx.fillStyle = "#ffeb3b";
+    if (this.flame) {
+      ctx.fillStyle = "#ff7043";
+    } else if (this.rail) {
+      ctx.fillStyle = "#b3e5fc";
+    } else {
+      ctx.fillStyle = "#ffeb3b";
+    }
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
@@ -550,12 +601,23 @@ function update(dt) {
     enemies.forEach(e => {
       if (!e.alive) return;
       if (Math.hypot(b.x - e.x, b.y - e.y) < b.radius + e.radius) {
-        const baseDmg = equippedWeapon ? equippedWeapon.stats.damage : 20;
-        const dmg = baseDmg * (1 + (player.bonusWeaponDamage || 0));
-        e.health -= dmg;
+        let baseDmg = equippedWeapon ? equippedWeapon.stats.damage : 20;
+        baseDmg *= (1 + (player.bonusWeaponDamage || 0));
+        if (equippedWeapon && equippedWeapon.evolved) {
+          baseDmg *= 1.3;
+        }
+
+        if (b.flame) {
+          baseDmg *= 0.6;
+        }
+        if (b.rail) {
+          baseDmg *= 1.8;
+        }
+
+        e.health -= baseDmg;
         spawnHitParticles(e.x, e.y, "#ffeb3b");
 
-        if (!b.piercing) {
+        if (!b.piercing && !b.rail) {
           b.alive = false;
         }
 

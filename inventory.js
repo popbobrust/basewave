@@ -28,6 +28,17 @@ function closeInventory() {
   document.getElementById("inventory-menu").classList.add("hidden");
 }
 
+function getRarityColor(tier) {
+  switch (tier) {
+    case 0: return "#9e9e9e"; // Common - gray
+    case 1: return "#4caf50"; // Uncommon - green
+    case 2: return "#2196f3"; // Rare - blue
+    case 3: return "#9c27b0"; // Epic - purple
+    case 4: return "#ffeb3b"; // Legendary - yellow
+    default: return "#ffffff";
+  }
+}
+
 function updateInventoryUI() {
   const list = document.getElementById("inventory-list");
   if (!list) return;
@@ -45,6 +56,10 @@ function updateInventoryUI() {
 
     const label = describeItem(item);
     div.textContent = label;
+
+    // Color by rarity
+    const tier = item.tier != null ? item.tier : 0;
+    div.style.color = getRarityColor(tier);
 
     if (item._new) {
       const tag = document.createElement("span");
@@ -115,7 +130,7 @@ function inventoryMergeSelected() {
     if (item.kind === "armor") {
       return other.set === item.set && other.slot === item.slot && other.tier === item.tier;
     } else {
-      return other.name === item.name && other.tier === item.tier;
+      return other.id === item.id && other.tier === item.tier;
     }
   });
 
@@ -156,6 +171,7 @@ function hookInventoryButtons() {
   document.getElementById("inv-merge-btn").addEventListener("click", inventoryMergeSelected);
   document.getElementById("inv-close-btn").addEventListener("click", closeInventory);
 }
+
 document.addEventListener("DOMContentLoaded", () => {
   updateEquippedUI();
 });

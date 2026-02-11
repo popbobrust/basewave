@@ -1,5 +1,5 @@
 // ===============================
-// GAME CORE (FULL REWRITE)
+// GAME CORE
 // ===============================
 
 const canvas = document.getElementById("gameCanvas");
@@ -65,9 +65,6 @@ class Player {
 
     this.speed = this.baseSpeed * moveMult;
 
-    // ===============================
-    // SET BONUSES (FULL SET ONLY)
-    // ===============================
     const setCounts = getSetCounts();
     const legendarySets = getLegendarySets();
 
@@ -107,7 +104,7 @@ class Player {
       this.maxHealth += 40;
     }
     if (legendarySets["Guardian"]) {
-      this.regenBonus = 1; // 1 HP/sec
+      this.regenBonus = 1;
     }
 
     // Berserker: offense
@@ -118,7 +115,7 @@ class Player {
       this.bonusWeaponDamage = 0.10;
     }
 
-    // Weapon evo hook (simple: if helper exists and weapon has evoReq)
+    // Weapon evo: if weapon has evoReq and corresponding helper exists
     if (equippedWeapon && equippedWeapon.evoReq && hasHelper(equippedWeapon.evoReq)) {
       equippedWeapon.evolved = true;
     }
@@ -180,20 +177,19 @@ class Player {
     }
 
     if (equippedWeapon && equippedWeapon.id === "stormbow") {
-      const angle = Math.atan2(mouse.y - this.y, mouse.x - this.y);
+      const angle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
       const speed = 8;
       bullets.push(new Bullet(
         this.x,
         this.y,
         Math.cos(angle) * speed,
         Math.sin(angle) * speed,
-        true // piercing
+        true
       ));
       return;
     }
 
-    // Default gun
-    const angle = Math.atan2(mouse.y - this.y, mouse.x - this.y);
+    const angle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
     bullets.push(new Bullet(
       this.x,
       this.y,
@@ -206,7 +202,7 @@ class Player {
   draw() {
     ctx.save();
     ctx.translate(this.x, this.y);
-    const angle = Math.atan2(mouse.y - this.y, mouse.x - this.y);
+    const angle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
     ctx.rotate(angle);
 
     ctx.fillStyle = "#4caf50";
@@ -352,12 +348,12 @@ function spawnHitParticles(x, y, color) {
 }
 
 // ===============================
-// WAVE SPAWNING
+// WAVES
 // ===============================
 
 function spawnNormalWave() {
   enemies = [];
-  const enemyCount = Math.floor(3 + wave * 1.2);
+  const enemyCount = Math.floor(3 + wave * 1.5);
 
   for (let i = 0; i < enemyCount; i++) {
     let x, y;
@@ -406,7 +402,11 @@ function startGame() {
   bullets = [];
   enemies = [];
   particles = [];
-  // Give player the default weapon if they don't already have one saved
+
+  resetAbilities();
+  resetWaves();
+
+  // Default weapon if none saved
   if (!equippedWeapon) {
     const defaultWeapon = {
       kind: "weapon",
@@ -416,14 +416,10 @@ function startGame() {
       evoReq: "berserker_core",
       evolved: false,
       stats: generateWeaponStats(0)
-  };
-
-  addItemToInventory(defaultWeapon);
-  equipItem(defaultWeapon);
-}
-
-  resetAbilities();
-  resetWaves();
+    };
+    addItemToInventory(defaultWeapon);
+    equipItem(defaultWeapon);
+  }
 
   player.applyGearAndHelpers();
 
@@ -510,8 +506,11 @@ function showLevelUpChoices() {
     div.addEventListener("click", () => {
       if (opt.type === "ability") {
         const existing = abilities.find(a => a.id === opt.def.id);
-        if (existing) upgradeAbility(existing);
-        else addAbility(opt.def);
+        if (existing) {
+          upgradeAbility(existing);
+        } else {
+          addAbility(opt.def);
+        }
       } else {
         addHelper(opt.def);
         player.applyGearAndHelpers();

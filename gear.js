@@ -58,8 +58,8 @@ function createWeapon(chestType) {
 function rollTier(chestType) {
   const odds = {
     basic: [80, 15, 4, 1, 0],
-    advanced: [60, 20, 10, 7, 3],
-    elite: [20, 30, 25, 15, 10]
+    advanced: [0, 60, 20, 13, 7],
+    elite: [0, 0, 50, 35, 15]
   };
   const table = odds[chestType];
   const roll = Math.random() * 100;

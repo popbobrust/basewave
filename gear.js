@@ -5,7 +5,7 @@ const TIER_NAMES = ["Common", "Uncommon", "Rare", "Epic", "Legendary"];
 let equippedArmor = {};
 let equippedWeapon = null;
 
-// Weapon pool
+
 const WEAPON_POOL = [
   {
     id: "soulblade",

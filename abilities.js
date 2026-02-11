@@ -1,5 +1,5 @@
 // ===============================
-// ABILITIES SYSTEM
+// ABILITIES SYSTEM (FULL REWRITE)
 // ===============================
 
 // Abilities with visuals, star levels, evo, no duplicates, and helper scaling
@@ -12,55 +12,60 @@ let helpers = []; // each helper: { id, name, level }
 // Visual state
 let guardianOrbs = [];
 let molotovPools = [];
-let droneBursts = [];
+let droneBullets = [];
 let droneAngle = 0;
 
-// Ability definitions
+// Ability definitions (now with evoReq)
 const ABILITY_POOL = [
   {
     id: "guardian_halo",
     name: "Guardian Halo",
-    basePower: 6,
+    basePower: 5,
     cooldown: 800,
     evoReq: "guardian_core"
   },
   {
     id: "forcefield",
     name: "Forcefield",
-    basePower: 5,
+    basePower: 4,
     cooldown: 500,
     evoReq: "forcefield_core"
   },
   {
     id: "molotov_ring",
     name: "Molotov Ring",
-    basePower: 8,
+    basePower: 7,
     cooldown: 2200,
     evoReq: "molotov_core"
   },
   {
     id: "drone",
     name: "Assault Drone",
-    basePower: 4,
-    cooldown: 200,
+    basePower: 3,      // lower damage
+    cooldown: 200,     // much faster
     evoReq: "drone_core"
   }
 ];
 
-// Helper definitions (stat + secondary evo helpers)
+// Helper definitions (now with evo helpers for abilities + weapons)
 const HELPER_POOL = [
-  { id: "atk_speed", name: "Attack Speed Up" },
-  { id: "move_speed", name: "Move Speed Up" },
-  { id: "damage_up", name: "Damage Up" },
-  { id: "cdr", name: "Cooldown Reduction" },
-  { id: "regen", name: "Health Regen" },
-  { id: "crit", name: "Crit Chance" },
+  // Stat helpers
+  { id: "atk_speed",      name: "Attack Speed Up" },
+  { id: "move_speed",     name: "Move Speed Up" },
+  { id: "damage_up",      name: "Damage Up" },
+  { id: "cdr",            name: "Cooldown Reduction" },
+  { id: "regen",          name: "Health Regen" },
+  { id: "crit",           name: "Crit Chance" },
 
-  // Secondary abilities (evo keys)
-  { id: "guardian_core", name: "Guardian Core" },
-  { id: "forcefield_core", name: "Stabilizer Field" },
-  { id: "molotov_core", name: "Fuel Mix" },
-  { id: "drone_core", name: "Overclock Module" }
+  // Ability evo helpers
+  { id: "guardian_core",  name: "Guardian Core" },
+  { id: "forcefield_core",name: "Stabilizer Field" },
+  { id: "molotov_core",   name: "Fuel Mix" },
+  { id: "drone_core",     name: "Overclock Module" },
+
+  // Weapon evo helpers
+  { id: "berserker_core", name: "Berserker Core" },
+  { id: "storm_core",     name: "Storm Core" }
 ];
 
 // ===============================
@@ -72,7 +77,7 @@ function resetAbilities() {
   helpers = [];
   guardianOrbs = [];
   molotovPools = [];
-  droneBursts = [];
+  droneBullets = [];
   droneAngle = 0;
   updateAbilitiesBar();
 }
@@ -83,11 +88,6 @@ function resetAbilities() {
 
 function addAbility(def) {
   if (abilities.length >= MAX_ABILITIES) return;
-  const existing = abilities.find(a => a.id === def.id);
-  if (existing) {
-    upgradeAbility(existing);
-    return;
-  }
   abilities.push({
     ...def,
     level: 1,
@@ -99,9 +99,8 @@ function addAbility(def) {
 
 function upgradeAbility(ab) {
   if (ab.level >= 5) return;
-  ab.level = Math.min(ab.level + 1, 5);
 
-  // Evo only when hitting 5★ via merge and having the correct secondary
+  ab.level++;
   if (ab.level === 5) {
     evolveAbilityIfPossible(ab);
   }
@@ -110,7 +109,7 @@ function upgradeAbility(ab) {
 }
 
 // ===============================
-// HELPERS (SECONDARY ABILITIES)
+// HELPERS (NOW WITH STAR LEVELS)
 // ===============================
 
 function addHelper(def) {
@@ -120,7 +119,6 @@ function addHelper(def) {
   } else {
     helpers.push({ ...def, level: 1 });
   }
-  updateAbilitiesBar();
 }
 
 function getHelperLevel(id) {
@@ -140,11 +138,6 @@ function getAbilityDamageMult() {
   let mult = 1;
   mult += getHelperLevel("damage_up") * 0.1;
   mult += getHelperLevel("crit") * 0.05;
-
-  if (typeof player !== "undefined" && player && player.abilityDamageBonus) {
-    mult += player.abilityDamageBonus;
-  }
-
   return mult;
 }
 
@@ -157,38 +150,14 @@ function getMoveSpeedMult() {
 }
 
 function getCooldownMult() {
-  let mult = Math.max(0.6, 1 - getHelperLevel("cdr") * 0.05);
-  if (typeof player !== "undefined" && player && player.cooldownBonus) {
-    mult *= (1 - player.cooldownBonus);
-  }
-  return mult;
+  return Math.max(0.6, 1 - getHelperLevel("cdr") * 0.05);
 }
 
 function applyRegen(dt) {
-  if (!player) return;
-
   const lvl = getHelperLevel("regen");
-  const baseRegen = lvl ? lvl * 0.5 : 0;
-  const extraRegen = player.regenBonus || 0;
-  const totalRegen = baseRegen + extraRegen;
-
-  if (!totalRegen) return;
-
-  player.health = Math.min(
-    player.maxHealth,
-    player.health + totalRegen * dt / 1000
-  );
-}
-
-// ===============================
-// EVOLUTION
-// ===============================
-
-function evolveAbilityIfPossible(ab) {
-  // Rule: must be 5★ and have the corresponding secondary ability
-  if (!ab.evolved && ab.level === 5 && ab.evoReq && hasHelper(ab.evoReq)) {
-    ab.evolved = true;
-  }
+  if (!lvl || !player) return;
+  const regen = lvl * 0.5;
+  player.health = Math.min(player.maxHealth, player.health + regen * dt / 1000);
 }
 
 // ===============================
@@ -212,12 +181,26 @@ function updateAbilities(dt) {
 
   updateGuardianOrbs(dt);
   updateMolotovPools(dt);
-  updateDroneBursts(dt);
+  updateDroneBullets(dt);
 
   applyRegen(dt);
 }
 
+// Evo now requires: ability level 5 + matching helper at level 5
+function evolveAbilityIfPossible(ab) {
+  if (ab.evolved) return;
+  if (ab.level !== 5) return;
+  if (!ab.evoReq) return;
+
+  const helper = helpers.find(h => h.id === ab.evoReq);
+  if (!helper || helper.level < 5) return;
+
+  ab.evolved = true;
+}
+
 function castAbility(ab, dmgMult) {
+  evolveAbilityIfPossible(ab);
+
   const base = ab.basePower;
   const levelMult = 1 + (ab.level - 1) * 0.5;
   const evoMult = ab.evolved ? 2.5 : 1;
@@ -225,9 +208,9 @@ function castAbility(ab, dmgMult) {
 
   switch (ab.id) {
     case "guardian_halo": spawnGuardianOrbs(ab, damage); break;
-    case "forcefield": applyForcefield(ab, damage); break;
-    case "molotov_ring": spawnMolotov(ab, damage); break;
-    case "drone": spawnDroneShot(ab, damage); break;
+    case "forcefield":    applyForcefield(ab, damage);   break;
+    case "molotov_ring":  spawnMolotov(ab, damage);      break;
+    case "drone":         spawnDroneShot(ab, damage);    break;
   }
 }
 
@@ -240,18 +223,23 @@ function spawnGuardianOrbs(ab, damage) {
   const radius = 60 + ab.level * 10;
   const speed = ab.evolved ? 0.008 : 0.004;
 
-  let baseAngle = 0;
-  if (guardianOrbs.length > 0) {
-    baseAngle = guardianOrbs[0].angle;
-  }
-
-  guardianOrbs = [];
-  for (let i = 0; i < count; i++) {
-    guardianOrbs.push({
-      angle: baseAngle + (Math.PI * 2 * i) / count,
-      radius,
-      damage,
-      speed
+  if (guardianOrbs.length !== count) {
+    const newOrbs = [];
+    for (let i = 0; i < count; i++) {
+      const old = guardianOrbs[i];
+      newOrbs.push({
+        angle: old ? old.angle : (Math.PI * 2 * i) / count,
+        radius,
+        damage,
+        speed
+      });
+    }
+    guardianOrbs = newOrbs;
+  } else {
+    guardianOrbs.forEach(o => {
+      o.radius = radius;
+      o.damage = damage;
+      o.speed = speed;
     });
   }
 }
@@ -289,17 +277,12 @@ function applyForcefield(ab, damage) {
 
   enemies.forEach(e => {
     if (!e.alive) return;
-
-    const dist = Math.hypot(e.x - player.x, e.y - player.y);
-    if (dist < radius) {
+    if (Math.hypot(e.x - player.x, e.y - player.y) < radius) {
       const slow = ab.evolved ? 0.4 : 0.7;
       e.x -= (e.x - player.x) * 0.01 * slow;
       e.y -= (e.y - player.y) * 0.01 * slow;
 
-      const tickDamage = damage * 0.5;
-      e.health -= tickDamage;
-      spawnHitParticles(e.x, e.y, "#42a5f5");
-
+      e.health -= damage * 0.5;
       if (e.health <= 0) {
         e.alive = false;
         spawnHitParticles(e.x, e.y, "#42a5f5");
@@ -352,58 +335,56 @@ function updateMolotovPools(dt) {
 }
 
 // ===============================
-// DRONE (ORBIT + RING AOE)
+// DRONE (REWORK)
 // ===============================
 
 function spawnDroneShot(ab, damage) {
-  // handled in updateDroneBursts via continuous firing
+  // handled in updateDroneBullets via continuous firing
 }
 
 let droneMissileTimer = 0;
 
-function updateDroneBursts(dt) {
+function updateDroneBullets(dt) {
   droneAngle += 0.002 * dt;
 
   const droneAb = abilities.find(a => a.id === "drone");
   if (droneAb && player) {
-    const fireInterval = droneAb.evolved ? 140 : 200;
+    const fireInterval = droneAb.evolved ? 120 : 180;
     droneMissileTimer += dt;
-
     while (droneMissileTimer >= fireInterval) {
       droneMissileTimer -= fireInterval;
 
-      const droneRadius = 40;
-      const droneX = player.x + Math.cos(droneAngle) * droneRadius;
-      const droneY = player.y + Math.sin(droneAngle) * droneRadius;
-
-      const burstCount = droneAb.evolved ? 6 : 4;
       const baseAngle = droneAngle;
+      const angles = droneAb.evolved
+        ? [baseAngle + 0.09, baseAngle - 0.09]
+        : [baseAngle + 0.09, baseAngle + 0.17];
 
-      for (let i = 0; i < burstCount; i++) {
-        const a = baseAngle + (Math.PI * 2 * i) / burstCount;
-        const dist = 22;
-        const x = droneX + Math.cos(a) * dist;
-        const y = droneY + Math.sin(a) * dist;
-
-        droneBursts.push({
-          x,
-          y,
-          radius: 20,
+      angles.forEach(a => {
+        const speed = 4;
+        droneBullets.push({
+          x: player.x + Math.cos(droneAngle) * 40,
+          y: player.y + Math.sin(droneAngle) * 40,
+          vx: Math.cos(a) * speed,
+          vy: Math.sin(a) * speed,
           damage: droneAb.basePower * (1 + (droneAb.level - 1) * 0.5) * getAbilityDamageMult(),
-          life: 180
+          life: 900,
+          radius: 18
         });
-      }
+      });
     }
   }
 
-  droneBursts.forEach(b => {
+  droneBullets.forEach(b => {
     b.life -= dt;
+    b.x += b.vx;
+    b.y += b.vy;
 
     enemies.forEach(e => {
       if (!e.alive) return;
       if (Math.hypot(e.x - b.x, e.y - b.y) < b.radius) {
         e.health -= b.damage;
         spawnHitParticles(e.x, e.y, "#ffee58");
+        b.life = 0;
         if (e.health <= 0) {
           e.alive = false;
           onEnemyKilled();
@@ -413,7 +394,7 @@ function updateDroneBursts(dt) {
     });
   });
 
-  droneBursts = droneBursts.filter(b => b.life > 0);
+  droneBullets = droneBullets.filter(b => b.life > 0);
 }
 
 // ===============================
@@ -463,11 +444,11 @@ function drawAbilities(ctx) {
     ctx.fill();
   }
 
-  // Drone bursts
-  droneBursts.forEach(b => {
-    ctx.fillStyle = "rgba(255,238,88,0.8)";
+  // Drone missiles
+  droneBullets.forEach(b => {
+    ctx.fillStyle = "#ffee58";
     ctx.beginPath();
-    ctx.arc(b.x, b.y, 6, 0, Math.PI * 2);
+    ctx.arc(b.x, b.y, 5, 0, Math.PI * 2);
     ctx.fill();
   });
 }
@@ -478,42 +459,28 @@ function drawAbilities(ctx) {
 
 function updateAbilitiesBar() {
   const bar = document.getElementById("abilities-bar");
-  if (!bar) return;
   bar.innerHTML = "";
 
-  // Active abilities
-  abilities.forEach(ab => {
+  for (let i = 0; i < MAX_ABILITIES; i++) {
     const slot = document.createElement("div");
     slot.className = "ability-slot";
 
-    const name = document.createElement("span");
-    name.className = "ability-name";
-    name.textContent = ab.name + (ab.evolved ? " +" : "");
+    const ab = abilities[i];
+    if (ab) {
+      const name = document.createElement("span");
+      name.className = "ability-name";
+      name.textContent = ab.name;
 
-    const stars = document.createElement("span");
-    stars.className = "ability-stars";
-    stars.textContent = "★".repeat(ab.level) + "☆".repeat(5 - ab.level);
+      const stars = document.createElement("span");
+      stars.className = "ability-stars";
+      stars.textContent = "★".repeat(ab.level) + "☆".repeat(5 - ab.level);
 
-    slot.appendChild(name);
-    slot.appendChild(stars);
+      slot.appendChild(name);
+      slot.appendChild(stars);
+    } else {
+      slot.textContent = "Empty";
+    }
+
     bar.appendChild(slot);
-  });
-
-  // Secondary abilities (helpers) shown as abilities
-  helpers.forEach(h => {
-    const slot = document.createElement("div");
-    slot.className = "ability-slot";
-
-    const name = document.createElement("span");
-    name.className = "ability-name";
-    name.textContent = h.name;
-
-    const stars = document.createElement("span");
-    stars.className = "ability-stars";
-    stars.textContent = "★".repeat(h.level) + "☆".repeat(5 - h.level);
-
-    slot.appendChild(name);
-    slot.appendChild(stars);
-    bar.appendChild(slot);
-  });
+  }
 }

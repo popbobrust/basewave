@@ -1,5 +1,5 @@
 // ===============================
-// ABILITIES SYSTEM (FULL REWRITE)
+// ABILITIES SYSTEM
 // ===============================
 
 // Abilities with visuals, star levels, evo, no duplicates, and helper scaling
@@ -12,7 +12,7 @@ let helpers = []; // each helper: { id, name, level }
 // Visual state
 let guardianOrbs = [];
 let molotovPools = [];
-let droneBursts = []; // ring AOE bursts
+let droneBursts = [];
 let droneAngle = 0;
 
 // Ability definitions
@@ -41,8 +41,8 @@ const ABILITY_POOL = [
   {
     id: "drone",
     name: "Assault Drone",
-    basePower: 4,      // a bit stronger
-    cooldown: 200,     // much faster
+    basePower: 4,
+    cooldown: 200,
     evoReq: "drone_core"
   }
 ];
@@ -83,6 +83,11 @@ function resetAbilities() {
 
 function addAbility(def) {
   if (abilities.length >= MAX_ABILITIES) return;
+  const existing = abilities.find(a => a.id === def.id);
+  if (existing) {
+    upgradeAbility(existing);
+    return;
+  }
   abilities.push({
     ...def,
     level: 1,
@@ -93,12 +98,19 @@ function addAbility(def) {
 }
 
 function upgradeAbility(ab) {
+  if (ab.level >= 5) return;
   ab.level = Math.min(ab.level + 1, 5);
+
+  // Evo only when hitting 5★ via merge and having the correct secondary
+  if (ab.level === 5) {
+    evolveAbilityIfPossible(ab);
+  }
+
   updateAbilitiesBar();
 }
 
 // ===============================
-// HELPERS (NOW WITH STAR LEVELS)
+// HELPERS (SECONDARY ABILITIES)
 // ===============================
 
 function addHelper(def) {
@@ -108,6 +120,7 @@ function addHelper(def) {
   } else {
     helpers.push({ ...def, level: 1 });
   }
+  updateAbilitiesBar();
 }
 
 function getHelperLevel(id) {
@@ -152,9 +165,9 @@ function getCooldownMult() {
 }
 
 function applyRegen(dt) {
-  const lvl = getHelperLevel("regen");
   if (!player) return;
 
+  const lvl = getHelperLevel("regen");
   const baseRegen = lvl ? lvl * 0.5 : 0;
   const extraRegen = player.regenBonus || 0;
   const totalRegen = baseRegen + extraRegen;
@@ -165,6 +178,17 @@ function applyRegen(dt) {
     player.maxHealth,
     player.health + totalRegen * dt / 1000
   );
+}
+
+// ===============================
+// EVOLUTION
+// ===============================
+
+function evolveAbilityIfPossible(ab) {
+  // Rule: must be 5★ and have the corresponding secondary ability
+  if (!ab.evolved && ab.level === 5 && ab.evoReq && hasHelper(ab.evoReq)) {
+    ab.evolved = true;
+  }
 }
 
 // ===============================
@@ -193,15 +217,7 @@ function updateAbilities(dt) {
   applyRegen(dt);
 }
 
-function evolveAbilityIfPossible(ab) {
-  if (!ab.evolved && ab.evoReq && hasHelper(ab.evoReq)) {
-    ab.evolved = true;
-  }
-}
-
 function castAbility(ab, dmgMult) {
-  evolveAbilityIfPossible(ab);
-
   const base = ab.basePower;
   const levelMult = 1 + (ab.level - 1) * 0.5;
   const evoMult = ab.evolved ? 2.5 : 1;
@@ -336,7 +352,7 @@ function updateMolotovPools(dt) {
 }
 
 // ===============================
-// DRONE (REWORK: ORBIT + RING AOE)
+// DRONE (ORBIT + RING AOE)
 // ===============================
 
 function spawnDroneShot(ab, damage) {
@@ -374,7 +390,7 @@ function updateDroneBursts(dt) {
           y,
           radius: 20,
           damage: droneAb.basePower * (1 + (droneAb.level - 1) * 0.5) * getAbilityDamageMult(),
-          life: 180 // ms
+          life: 180
         });
       }
     }
@@ -447,7 +463,7 @@ function drawAbilities(ctx) {
     ctx.fill();
   }
 
-  // Drone bursts (small circles)
+  // Drone bursts
   droneBursts.forEach(b => {
     ctx.fillStyle = "rgba(255,238,88,0.8)";
     ctx.beginPath();
@@ -462,28 +478,42 @@ function drawAbilities(ctx) {
 
 function updateAbilitiesBar() {
   const bar = document.getElementById("abilities-bar");
+  if (!bar) return;
   bar.innerHTML = "";
 
-  for (let i = 0; i < MAX_ABILITIES; i++) {
+  // Active abilities
+  abilities.forEach(ab => {
     const slot = document.createElement("div");
     slot.className = "ability-slot";
 
-    const ab = abilities[i];
-    if (ab) {
-      const name = document.createElement("span");
-      name.className = "ability-name";
-      name.textContent = ab.name + (ab.evolved ? " +" : "");
+    const name = document.createElement("span");
+    name.className = "ability-name";
+    name.textContent = ab.name + (ab.evolved ? " +" : "");
 
-      const stars = document.createElement("span");
-      stars.className = "ability-stars";
-      stars.textContent = "★".repeat(ab.level) + "☆".repeat(5 - ab.level);
+    const stars = document.createElement("span");
+    stars.className = "ability-stars";
+    stars.textContent = "★".repeat(ab.level) + "☆".repeat(5 - ab.level);
 
-      slot.appendChild(name);
-      slot.appendChild(stars);
-    } else {
-      slot.textContent = "Empty";
-    }
-
+    slot.appendChild(name);
+    slot.appendChild(stars);
     bar.appendChild(slot);
-  }
+  });
+
+  // Secondary abilities (helpers) shown as abilities
+  helpers.forEach(h => {
+    const slot = document.createElement("div");
+    slot.className = "ability-slot";
+
+    const name = document.createElement("span");
+    name.className = "ability-name";
+    name.textContent = h.name;
+
+    const stars = document.createElement("span");
+    stars.className = "ability-stars";
+    stars.textContent = "★".repeat(h.level) + "☆".repeat(5 - h.level);
+
+    slot.appendChild(name);
+    slot.appendChild(stars);
+    bar.appendChild(slot);
+  });
 }

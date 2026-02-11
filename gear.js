@@ -5,18 +5,10 @@ const TIER_NAMES = ["Common", "Uncommon", "Rare", "Epic", "Legendary"];
 let equippedArmor = {};
 let equippedWeapon = null;
 
-
+// Weapon pool with evo requirements
 const WEAPON_POOL = [
-  {
-    id: "soulblade",
-    name: "Soulblade",
-    evoReq: "berserker_core"
-  },
-  {
-    id: "stormbow",
-    name: "Stormbow",
-    evoReq: "storm_core" // not used yet, but ready
-  }
+  { id: "soulblade", name: "Soulblade", evoReq: "berserker_core" },
+  { id: "stormbow",  name: "Stormbow",  evoReq: "storm_core" }
 ];
 
 function createArmor(chestType) {
@@ -39,18 +31,17 @@ function createWeapon(chestType) {
     kind: "weapon",
     id: def.id,
     name: def.name,
+    evoReq: def.evoReq,
     tier,
-    evoReq: def.evoReq || null,
-    evolved: false,
     stats: generateWeaponStats(tier)
   };
 }
 
 function rollTier(chestType) {
   const odds = {
-    basic: [80, 15, 4, 1, 0],
+    basic:    [80, 15, 4, 1, 0],
     advanced: [60, 20, 10, 7, 3],
-    elite: [20, 30, 25, 15, 10]
+    elite:    [20, 30, 25, 15, 10]
   };
   const table = odds[chestType];
   const roll = Math.random() * 100;
@@ -65,14 +56,14 @@ function rollTier(chestType) {
 function generateArmorStats(set, tier) {
   return {
     health: 10 + tier * 8,
-    armor: 2 + tier * 2,
+    armor:  2 + tier * 2,
     set
   };
 }
 
 function generateWeaponStats(tier) {
   return {
-    damage: 14 + tier * 8,
+    damage:      12 + tier * 7,
     attackSpeed: 1 + tier * 0.12
   };
 }

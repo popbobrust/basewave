@@ -1,7 +1,7 @@
 const CHEST_COST = {
   basic: 1500,
   advanced: 6000,
-  elite: 15000
+  elite: 150000
 };
 
 let lastCrateItem = null;

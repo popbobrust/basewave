@@ -251,12 +251,23 @@ function applyForcefield(ab, damage) {
 
   enemies.forEach(e => {
     if (!e.alive) return;
-    if (Math.hypot(e.x - player.x, e.y - player.y) < radius) {
+
+    const dist = Math.hypot(e.x - player.x, e.y - player.y);
+    if (dist < radius) {
+
+      // Slow effect
       const slow = ab.evolved ? 0.4 : 0.7;
       e.x -= (e.x - player.x) * 0.01 * slow;
       e.y -= (e.y - player.y) * 0.01 * slow;
 
-      e.health -= damage * 0.5;
+      // Damage over time
+      const tickDamage = damage * 0.5;
+      e.health -= tickDamage;
+
+      // Visual hit particles (same style as other abilities)
+      spawnHitParticles(e.x, e.y, "#42a5f5");
+
+      // Kill enemy if needed
       if (e.health <= 0) {
         e.alive = false;
         spawnHitParticles(e.x, e.y, "#42a5f5");
@@ -266,6 +277,7 @@ function applyForcefield(ab, damage) {
     }
   });
 }
+
 
 // ===============================
 // MOLOTOV

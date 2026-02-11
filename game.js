@@ -41,6 +41,13 @@ class Player {
     this.baseFireRate = 200;
     this.fireRate = this.baseFireRate;
     this.lastShot = 0;
+
+    this.thorns = 0;
+    this.dodgeChance = 0;
+    this.abilityDamageBonus = 0;
+    this.cooldownBonus = 0;
+    this.regenBonus = 0;
+    this.bonusWeaponDamage = 0;
   }
 
   applyGearAndHelpers() {
@@ -57,63 +64,64 @@ class Player {
     this.health = Math.min(this.health, this.maxHealth);
 
     this.speed = this.baseSpeed * moveMult;
+
     // ===============================
-  // SET BONUSES
-  // ===============================
-  const setCounts = getSetCounts();
-  const legendarySets = getLegendarySets();
+    // SET BONUSES (FULL SET ONLY)
+    // ===============================
+    const setCounts = getSetCounts();
+    const legendarySets = getLegendarySets();
 
-// Knight: defense
-if (setCounts["Knight"] >= 2) {
-  this.maxHealth += 10; // small HP bump
-}
-if (legendarySets["Knight"]) {
-  this.thorns = 0.10; // reflect 10% damage
-} else {
-  this.thorns = 0;
-}
+    this.thorns = 0;
+    this.dodgeChance = 0;
+    this.abilityDamageBonus = 0;
+    this.cooldownBonus = 0;
+    this.regenBonus = 0;
+    this.bonusWeaponDamage = 0;
 
-// Rogue: speed
-if (setCounts["Rogue"] >= 2) {
-  this.speed *= 1.10;
-}
-if (legendarySets["Rogue"]) {
-  this.dodgeChance = 0.10;
-} else {
-  this.dodgeChance = 0;
-}
+    // Knight: defense
+    if (setCounts["Knight"] === 5) {
+      this.maxHealth += 20;
+    }
+    if (legendarySets["Knight"]) {
+      this.thorns = 0.10;
+    }
 
-// Mage: ability damage
-if (setCounts["Mage"] >= 2) {
-  this.abilityDamageBonus = 0.10;
-} else {
-  this.abilityDamageBonus = 0;
-}
-if (legendarySets["Mage"]) {
-  this.cooldownBonus = 0.10;
-} else {
-  this.cooldownBonus = 0;
-}
+    // Rogue: speed
+    if (setCounts["Rogue"] === 5) {
+      this.speed *= 1.15;
+    }
+    if (legendarySets["Rogue"]) {
+      this.dodgeChance = 0.10;
+    }
 
-// Guardian: tank
-if (setCounts["Guardian"] >= 2) {
-  this.maxHealth += 20;
-}
-if (legendarySets["Guardian"]) {
-  this.regenBonus = 1; // 1 HP/sec
-} else {
-  this.regenBonus = 0;
-}
+    // Mage: ability damage
+    if (setCounts["Mage"] === 5) {
+      this.abilityDamageBonus = 0.15;
+    }
+    if (legendarySets["Mage"]) {
+      this.cooldownBonus = 0.10;
+    }
 
-// Berserker: offense
-if (setCounts["Berserker"] >= 2) {
-  this.fireRate *= 0.90; // faster attacks
-}
-if (legendarySets["Berserker"]) {
-  this.bonusWeaponDamage = 0.10;
-} else {
-  this.bonusWeaponDamage = 0;
-}
+    // Guardian: tank
+    if (setCounts["Guardian"] === 5) {
+      this.maxHealth += 40;
+    }
+    if (legendarySets["Guardian"]) {
+      this.regenBonus = 1; // 1 HP/sec
+    }
+
+    // Berserker: offense
+    if (setCounts["Berserker"] === 5) {
+      this.fireRate *= 0.90;
+    }
+    if (legendarySets["Berserker"]) {
+      this.bonusWeaponDamage = 0.10;
+    }
+
+    // Weapon evo hook (simple: if helper exists and weapon has evoReq)
+    if (equippedWeapon && equippedWeapon.evoReq && hasHelper(equippedWeapon.evoReq)) {
+      equippedWeapon.evolved = true;
+    }
 
     if (equippedWeapon) {
       this.fireRate = this.baseFireRate / (equippedWeapon.stats.attackSpeed * atkSpeedMult);
@@ -151,10 +159,9 @@ if (legendarySets["Berserker"]) {
   }
 
   shoot() {
-    // 360° melee sword
-    if (equippedWeapon && equippedWeapon.name === "Soulblade") {
-      const range = 80;
-      const dmg = equippedWeapon.stats.damage;
+    if (equippedWeapon && equippedWeapon.id === "soulblade") {
+      const range = equippedWeapon.evolved ? 110 : 80;
+      const dmg = equippedWeapon.stats.damage * (1 + (this.bonusWeaponDamage || 0));
 
       enemies.forEach(e => {
         if (!e.alive) return;
@@ -172,20 +179,34 @@ if (legendarySets["Berserker"]) {
       return;
     }
 
+    if (equippedWeapon && equippedWeapon.id === "stormbow") {
+      const angle = Math.atan2(mouse.y - this.y, mouse.x - this.y);
+      const speed = 8;
+      bullets.push(new Bullet(
+        this.x,
+        this.y,
+        Math.cos(angle) * speed,
+        Math.sin(angle) * speed,
+        true // piercing
+      ));
+      return;
+    }
+
     // Default gun
-    const angle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
+    const angle = Math.atan2(mouse.y - this.y, mouse.x - this.y);
     bullets.push(new Bullet(
       this.x,
       this.y,
       Math.cos(angle) * 7,
-      Math.sin(angle) * 7
+      Math.sin(angle) * 7,
+      false
     ));
   }
 
   draw() {
     ctx.save();
     ctx.translate(this.x, this.y);
-    const angle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
+    const angle = Math.atan2(mouse.y - this.y, mouse.x - this.y);
     ctx.rotate(angle);
 
     ctx.fillStyle = "#4caf50";
@@ -205,13 +226,14 @@ if (legendarySets["Berserker"]) {
 // ===============================
 
 class Bullet {
-  constructor(x, y, vx, vy) {
+  constructor(x, y, vx, vy, piercing = false) {
     this.x = x;
     this.y = y;
     this.radius = 4;
     this.vx = vx;
     this.vy = vy;
     this.alive = true;
+    this.piercing = piercing;
   }
 
   update(dt) {
@@ -241,13 +263,14 @@ class Bullet {
 // ===============================
 
 class Enemy {
-  constructor(x, y, speed, health) {
+  constructor(x, y, speed, health, isBoss = false) {
     this.x = x;
     this.y = y;
-    this.radius = 14;
+    this.radius = isBoss ? 28 : 14;
     this.speed = speed;
     this.health = health;
     this.alive = true;
+    this.isBoss = isBoss;
   }
 
   update(dt) {
@@ -259,11 +282,25 @@ class Enemy {
     if (dist < this.radius + player.radius) {
       this.alive = false;
 
+      if (Math.random() < (player.dodgeChance || 0)) {
+        spawnHitParticles(this.x, this.y, "#ffffff");
+        return;
+      }
+
       const armor = getTotalArmor();
       const reduced = Math.max(4, 10 - armor * 0.3);
 
       player.health -= reduced;
       spawnHitParticles(this.x, this.y, "#f44336");
+
+      if (player.thorns > 0) {
+        this.health -= reduced * player.thorns;
+        if (this.health <= 0) {
+          this.alive = false;
+          onEnemyKilled();
+          addCoins(5 + wave);
+        }
+      }
 
       if (player.health <= 0) {
         endGame(false);
@@ -272,7 +309,7 @@ class Enemy {
   }
 
   draw() {
-    ctx.fillStyle = "#f44336";
+    ctx.fillStyle = this.isBoss ? "#9c27b0" : "#f44336";
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
@@ -318,9 +355,9 @@ function spawnHitParticles(x, y, color) {
 // WAVE SPAWNING
 // ===============================
 
-function spawnWave() {
+function spawnNormalWave() {
   enemies = [];
-  const enemyCount = 4 + wave * 2;
+  const enemyCount = Math.floor(3 + wave * 1.5);
 
   for (let i = 0; i < enemyCount; i++) {
     let x, y;
@@ -331,13 +368,33 @@ function spawnWave() {
     else if (edge === 2) { x = Math.random() * WIDTH; y = HEIGHT + 20; }
     else { x = -20; y = Math.random() * HEIGHT; }
 
-    const speed = 1.2 + wave * 0.2;
-    const health = 30 + wave * 8;
+    const speed = 1 + wave * 0.12;
+    const health = 25 + wave * 5;
 
     enemies.push(new Enemy(x, y, speed, health));
   }
 
   enemiesLeftEl.textContent = enemies.length;
+}
+
+function spawnBoss() {
+  enemies = [];
+
+  const x = WIDTH / 2;
+  const y = -60;
+  const speed = 0.8 + wave * 0.05;
+  const health = 400 + wave * 40;
+
+  enemies.push(new Enemy(x, y, speed, health, true));
+  enemiesLeftEl.textContent = enemies.length;
+}
+
+function spawnWave() {
+  if (wave % 15 === 0) {
+    spawnBoss();
+  } else {
+    spawnNormalWave();
+  }
 }
 
 // ===============================
@@ -350,7 +407,6 @@ function startGame() {
   enemies = [];
   particles = [];
 
-  // Persistent gear + coins
   resetAbilities();
   resetWaves();
 
@@ -429,7 +485,7 @@ function showLevelUpChoices() {
       const existing = helpers.find(h => h.id === opt.def.id);
       const nextLevel = Math.min((existing ? existing.level : 0) + 1, 5);
 
-      title.textContent = `Helper: ${opt.def.name}`;
+      title.textContent = `Secondary: ${opt.def.name}`;
       stars.textContent = "★".repeat(nextLevel) + "☆".repeat(5 - nextLevel);
     }
 
@@ -480,15 +536,19 @@ function update(dt) {
     enemies.forEach(e => {
       if (!e.alive) return;
       if (Math.hypot(b.x - e.x, b.y - e.y) < b.radius + e.radius) {
-        const dmg = equippedWeapon ? equippedWeapon.stats.damage : 20;
+        const baseDmg = equippedWeapon ? equippedWeapon.stats.damage : 20;
+        const dmg = baseDmg * (1 + (player.bonusWeaponDamage || 0));
         e.health -= dmg;
-        b.alive = false;
         spawnHitParticles(e.x, e.y, "#ffeb3b");
+
+        if (!b.piercing) {
+          b.alive = false;
+        }
 
         if (e.health <= 0) {
           e.alive = false;
           onEnemyKilled();
-          addCoins(5 + wave);
+          addCoins(e.isBoss ? 200 + wave * 10 : 5 + wave);
         }
       }
     });
@@ -560,8 +620,6 @@ hookMenuButtons();
 hookChestButtons();
 hookInventoryButtons();
 
-loadInventory();   // <-- NEW
+loadInventory();
 
 showMainMenu();
-
-

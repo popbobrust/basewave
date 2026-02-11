@@ -357,7 +357,7 @@ function spawnHitParticles(x, y, color) {
 
 function spawnNormalWave() {
   enemies = [];
-  const enemyCount = Math.floor(3 + wave * 1.5);
+  const enemyCount = Math.floor(3 + wave * 1.2);
 
   for (let i = 0; i < enemyCount; i++) {
     let x, y;
@@ -406,6 +406,21 @@ function startGame() {
   bullets = [];
   enemies = [];
   particles = [];
+  // Give player the default weapon if they don't already have one saved
+  if (!equippedWeapon) {
+    const defaultWeapon = {
+      kind: "weapon",
+      id: "soulblade",
+      name: "Soulblade",
+      tier: 0,
+      evoReq: "berserker_core",
+      evolved: false,
+      stats: generateWeaponStats(0)
+  };
+
+  addItemToInventory(defaultWeapon);
+  equipItem(defaultWeapon);
+}
 
   resetAbilities();
   resetWaves();

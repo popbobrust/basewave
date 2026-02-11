@@ -5,6 +5,20 @@ const TIER_NAMES = ["Common", "Uncommon", "Rare", "Epic", "Legendary"];
 let equippedArmor = {};
 let equippedWeapon = null;
 
+// Simple weapon pool, ready for expansion
+const WEAPON_POOL = [
+  {
+    id: "soulblade",
+    name: "Soulblade",
+    evoReq: "berserker_core" // future secondary if you want
+  },
+  {
+    id: "stormbow",
+    name: "Stormbow",
+    evoReq: "storm_core" // not wired yet, but ready
+  }
+];
+
 function createArmor(chestType) {
   const set = randomFrom(SET_NAMES);
   const slot = randomFrom(ARMOR_SLOTS);
@@ -20,10 +34,14 @@ function createArmor(chestType) {
 
 function createWeapon(chestType) {
   const tier = rollTier(chestType);
+  const def = randomFrom(WEAPON_POOL);
   return {
     kind: "weapon",
-    name: "Soulblade",
+    id: def.id,
+    name: def.name,
     tier,
+    evoReq: def.evoReq || null,
+    evolved: false,
     stats: generateWeaponStats(tier)
   };
 }
@@ -54,7 +72,7 @@ function generateArmorStats(set, tier) {
 
 function generateWeaponStats(tier) {
   return {
-    damage: 12 + tier * 7,
+    damage: 14 + tier * 8,
     attackSpeed: 1 + tier * 0.12
   };
 }
@@ -128,6 +146,7 @@ function describeItem(item) {
     return `${item.name} (${TIER_NAMES[item.tier]})`;
   }
 }
+
 function getSetCounts() {
   const counts = {};
   for (const slot of ARMOR_SLOTS) {

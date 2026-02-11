@@ -5,17 +5,17 @@ const TIER_NAMES = ["Common", "Uncommon", "Rare", "Epic", "Legendary"];
 let equippedArmor = {};
 let equippedWeapon = null;
 
-// Simple weapon pool, ready for expansion
+// Weapon pool
 const WEAPON_POOL = [
   {
     id: "soulblade",
     name: "Soulblade",
-    evoReq: "berserker_core" // future secondary if you want
+    evoReq: "berserker_core"
   },
   {
     id: "stormbow",
     name: "Stormbow",
-    evoReq: "storm_core" // not wired yet, but ready
+    evoReq: "storm_core" // not used yet, but ready
   }
 ];
 

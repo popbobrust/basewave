@@ -31,14 +31,14 @@ class Player {
     this.y = HEIGHT / 2;
     this.radius = 15;
 
-    this.baseSpeed = 3;
+    this.baseSpeed = 3.4;
     this.speed = this.baseSpeed;
 
-    this.baseHealth = 100;
+    this.baseHealth = 140;
     this.maxHealth = this.baseHealth;
     this.health = this.maxHealth;
 
-    this.baseFireRate = 200;
+    this.baseFireRate = 170;
     this.fireRate = this.baseFireRate;
     this.lastShot = 0;
 
@@ -77,42 +77,42 @@ class Player {
 
     // Knight: defense
     if (setCounts["Knight"] === 5) {
-      this.maxHealth += 20;
+      this.maxHealth += 30;
     }
     if (legendarySets["Knight"]) {
-      this.thorns = 0.10;
+      this.thorns = 0.12;
     }
 
     // Rogue: speed
     if (setCounts["Rogue"] === 5) {
-      this.speed *= 1.15;
+      this.speed *= 1.18;
     }
     if (legendarySets["Rogue"]) {
-      this.dodgeChance = 0.10;
+      this.dodgeChance = 0.12;
     }
 
     // Mage: ability damage
     if (setCounts["Mage"] === 5) {
-      this.abilityDamageBonus = 0.15;
+      this.abilityDamageBonus = 0.18;
     }
     if (legendarySets["Mage"]) {
-      this.cooldownBonus = 0.10;
+      this.cooldownBonus = 0.12;
     }
 
     // Guardian: tank
     if (setCounts["Guardian"] === 5) {
-      this.maxHealth += 40;
+      this.maxHealth += 50;
     }
     if (legendarySets["Guardian"]) {
-      this.regenBonus = 1;
+      this.regenBonus = 1.2;
     }
 
     // Berserker: offense
     if (setCounts["Berserker"] === 5) {
-      this.fireRate *= 0.90;
+      this.fireRate *= 0.88;
     }
     if (legendarySets["Berserker"]) {
-      this.bonusWeaponDamage = 0.10;
+      this.bonusWeaponDamage = 0.12;
     }
 
     // Weapon evo: require helper at 5★ and weapon at max tier
@@ -172,7 +172,7 @@ class Player {
           if (e.health <= 0) {
             e.alive = false;
             onEnemyKilled();
-            addCoins(5 + wave);
+            addCoins(8 + Math.floor(wave * 1.2));
           }
         }
       });
@@ -335,7 +335,7 @@ class Enemy {
       }
 
       const armor = getTotalArmor();
-      const reduced = Math.max(4, 10 - armor * 0.3);
+      const reduced = Math.max(2, 7 - armor * 0.25);
 
       player.health -= reduced;
       spawnHitParticles(this.x, this.y, "#f44336");
@@ -345,7 +345,7 @@ class Enemy {
         if (this.health <= 0) {
           this.alive = false;
           onEnemyKilled();
-          addCoins(5 + wave);
+          addCoins(8 + Math.floor(wave * 1.2));
         }
       }
 
@@ -404,7 +404,7 @@ function spawnHitParticles(x, y, color) {
 
 function spawnNormalWave() {
   enemies = [];
-  const enemyCount = Math.floor(3 + wave * 1.5);
+  const enemyCount = Math.floor(2 + wave * 1.2);
 
   for (let i = 0; i < enemyCount; i++) {
     let x, y;
@@ -415,8 +415,8 @@ function spawnNormalWave() {
     else if (edge === 2) { x = Math.random() * WIDTH; y = HEIGHT + 20; }
     else { x = -20; y = Math.random() * HEIGHT; }
 
-    const speed = 1 + wave * 0.12;
-    const health = 25 + wave * 5;
+    const speed = 0.9 + wave * 0.1;
+    const health = 20 + wave * 4;
 
     enemies.push(new Enemy(x, y, speed, health));
   }
@@ -429,8 +429,8 @@ function spawnBoss() {
 
   const x = WIDTH / 2;
   const y = -60;
-  const speed = 0.8 + wave * 0.05;
-  const health = 400 + wave * 40;
+  const speed = 0.7 + wave * 0.04;
+  const health = 320 + wave * 30;
 
   enemies.push(new Enemy(x, y, speed, health, true));
   enemiesLeftEl.textContent = enemies.length;
@@ -624,7 +624,11 @@ function update(dt) {
         if (e.health <= 0) {
           e.alive = false;
           onEnemyKilled();
-          addCoins(e.isBoss ? 200 + wave * 10 : 5 + wave);
+          if (e.isBoss) {
+            addCoins(260 + Math.floor(wave * 12));
+          } else {
+            addCoins(8 + Math.floor(wave * 1.2));
+          }
         }
       }
     });

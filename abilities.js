@@ -48,26 +48,27 @@ const ABILITY_POOL = [
 ];
 
 // Helper definitions (stat + secondary evo helpers)
+// All secondaries renamed to "X Module" style
 const HELPER_POOL = [
   // Stat helpers
-  { id: "atk_speed", name: "Attack Speed Up" },
-  { id: "move_speed", name: "Move Speed Up" },
-  { id: "damage_up", name: "Damage Up" },
-  { id: "cdr", name: "Cooldown Reduction" },
-  { id: "regen", name: "Health Regen" },
-  { id: "crit", name: "Crit Chance" },
+  { id: "atk_speed",   name: "Attack Speed Module" },
+  { id: "move_speed",  name: "Move Speed Module" },
+  { id: "damage_up",   name: "Damage Module" },
+  { id: "cdr",         name: "Cooldown Module" },
+  { id: "regen",       name: "Regen Module" },
+  { id: "crit",        name: "Crit Module" },
 
   // Ability evo keys
-  { id: "guardian_core", name: "Guardian Core" },
-  { id: "forcefield_core", name: "Stabilizer Field" },
-  { id: "molotov_core", name: "Fuel Mix" },
-  { id: "drone_core", name: "Overclock Module" },
+  { id: "guardian_core",   name: "Guardian Halo Module" },
+  { id: "forcefield_core", name: "Forcefield Module" },
+  { id: "molotov_core",    name: "Molotov Ring Module" },
+  { id: "drone_core",      name: "Assault Drone Module" },
 
   // Weapon evo keys
-  { id: "berserker_core", name: "Berserker Core" },   // Soulblade
-  { id: "storm_core", name: "Storm Core" },           // Stormbow
-  { id: "flame_core", name: "Flame Core" },           // Flamethrower
-  { id: "rail_core", name: "Rail Core" }              // Railgun
+  { id: "berserker_core",  name: "Soulblade Module" },   // Soulblade
+  { id: "storm_core",      name: "Stormbow Module" },    // Stormbow
+  { id: "flame_core",      name: "Flamethrower Module" },// Flamethrower
+  { id: "rail_core",       name: "Railgun Module" }      // Railgun
 ];
 
 // ===============================
@@ -106,9 +107,11 @@ function addAbility(def) {
 
 function upgradeAbility(ab) {
   if (ab.level >= 5) return;
+
+  // Evo rule clarity: you can reach 5★, but evolution only happens
+  // when both the ability and its secondary Module are 5★.
   ab.level = Math.min(ab.level + 1, 5);
 
-  // Evo only when hitting 5★ and secondary is also 5★
   if (ab.level === 5) {
     evolveAbilityIfPossible(ab);
   }
@@ -123,6 +126,7 @@ function upgradeAbility(ab) {
 function addHelper(def) {
   const existing = helpers.find(h => h.id === def.id);
   if (existing) {
+    if (existing.level >= 5) return;
     existing.level = Math.min(existing.level + 1, 5);
   } else {
     helpers.push({ ...def, level: 1 });
@@ -145,8 +149,8 @@ function hasHelper(id) {
 
 function getAbilityDamageMult() {
   let mult = 1;
-  mult += getHelperLevel("damage_up") * 0.1;
-  mult += getHelperLevel("crit") * 0.05;
+  mult += getHelperLevel("damage_up") * 0.12;
+  mult += getHelperLevel("crit") * 0.06;
 
   if (typeof player !== "undefined" && player && player.abilityDamageBonus) {
     mult += player.abilityDamageBonus;
@@ -156,15 +160,15 @@ function getAbilityDamageMult() {
 }
 
 function getAttackSpeedMult() {
-  return 1 + getHelperLevel("atk_speed") * 0.1;
+  return 1 + getHelperLevel("atk_speed") * 0.12;
 }
 
 function getMoveSpeedMult() {
-  return 1 + getHelperLevel("move_speed") * 0.08;
+  return 1 + getHelperLevel("move_speed") * 0.1;
 }
 
 function getCooldownMult() {
-  let mult = Math.max(0.6, 1 - getHelperLevel("cdr") * 0.05);
+  let mult = Math.max(0.55, 1 - getHelperLevel("cdr") * 0.06);
   if (typeof player !== "undefined" && player && player.cooldownBonus) {
     mult *= (1 - player.cooldownBonus);
   }
@@ -175,7 +179,7 @@ function applyRegen(dt) {
   if (!player) return;
 
   const lvl = getHelperLevel("regen");
-  const baseRegen = lvl ? lvl * 0.5 : 0;
+  const baseRegen = lvl ? lvl * 0.6 : 0;
   const extraRegen = player.regenBonus || 0;
   const totalRegen = baseRegen + extraRegen;
 
@@ -192,7 +196,7 @@ function applyRegen(dt) {
 // ===============================
 
 function evolveAbilityIfPossible(ab) {
-  // Rule: must be 5★ and have the corresponding secondary at 5★
+  // Rule: must be 5★ and have the corresponding Module at 5★
   if (!ab.evoReq) return;
   if (ab.level !== 5) return;
   if (getHelperLevel(ab.evoReq) !== 5) return;
@@ -233,9 +237,9 @@ function castAbility(ab, dmgMult) {
 
   switch (ab.id) {
     case "guardian_halo": spawnGuardianOrbs(ab, damage); break;
-    case "forcefield": applyForcefield(ab, damage); break;
-    case "molotov_ring": spawnMolotov(ab, damage); break;
-    case "drone": spawnDroneShot(ab, damage); break;
+    case "forcefield":    applyForcefield(ab, damage);   break;
+    case "molotov_ring":  spawnMolotov(ab, damage);      break;
+    case "drone":         spawnDroneShot(ab, damage);    break;
   }
 }
 
@@ -280,7 +284,7 @@ function updateGuardianOrbs(dt) {
         if (e.health <= 0) {
           e.alive = false;
           onEnemyKilled();
-          addCoins(5 + wave);
+          addCoins(8 + Math.floor(wave * 1.2));
         }
       }
     });
@@ -312,7 +316,7 @@ function applyForcefield(ab, damage) {
         e.alive = false;
         spawnHitParticles(e.x, e.y, "#42a5f5");
         onEnemyKilled();
-        addCoins(5 + wave);
+        addCoins(8 + Math.floor(wave * 1.2));
       }
     }
   });
@@ -351,7 +355,7 @@ function updateMolotovPools(dt) {
         if (e.health <= 0) {
           e.alive = false;
           onEnemyKilled();
-          addCoins(5 + wave);
+          addCoins(8 + Math.floor(wave * 1.2));
         }
       }
     });
@@ -415,7 +419,7 @@ function updateDroneBursts(dt) {
         if (e.health <= 0) {
           e.alive = false;
           onEnemyKilled();
-          addCoins(5 + wave);
+          addCoins(8 + Math.floor(wave * 1.2));
         }
       }
     });

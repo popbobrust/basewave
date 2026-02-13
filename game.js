@@ -578,13 +578,6 @@ function showLevelUpChoices() {
 function updateHealthUI() {
   healthEl.textContent = Math.round(player.health);
 }
-function updateTimeUI() {
-  const t = Math.floor(elapsedTime / 1000);
-  const minutes = Math.floor(t / 60);
-  const seconds = t % 60;
-  document.getElementById("time").textContent =
-    minutes + ":" + (seconds < 10 ? "0" + seconds : seconds);
-}
 
 function update(dt) {
   if (!gameRunning || paused) return;
@@ -652,7 +645,13 @@ function update(dt) {
 
   // no more "if enemies.length === 0 then nextWave()"
 }
-
+function updateTimeUI() {
+  const t = Math.floor(elapsedTime / 1000);
+  const minutes = Math.floor(t / 60);
+  const seconds = t % 60;
+  document.getElementById("time").textContent =
+    minutes + ":" + (seconds < 10 ? "0" + seconds : seconds);
+}
 function draw() {
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
 

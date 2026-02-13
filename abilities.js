@@ -279,7 +279,8 @@ function updateGuardianOrbs(dt) {
         if (e.health <= 0) {
           e.alive = false;
           onEnemyKilled();
-          addCoins(5 + wave);
+          const difficulty = Math.floor(elapsedTime / 10000);
+          addCoins(5 + difficulty);
         }
       }
     });

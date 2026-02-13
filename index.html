@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Wave Survival Roguelite</title>
+  <title>basewave</title>
   <link rel="stylesheet" href="style.css" />
 </head>
   <script>
@@ -27,16 +27,16 @@ window.onerror = function(msg, url, line, col, error) {
   </div>
 
   <div id="main-menu" class="menu fullscreen">
-    <h1>Wave Survival</h1>
+    <h1>basewave</h1>
 
     <button id="play-btn">Play</button>
     <button id="inventory-btn">Inventory</button>
     <button id="highscores-btn">High Scores</button>
 
     <div class="chests">
-      <button class="chest-btn" data-type="basic">Crate 1 (Basic)</button>
-      <button class="chest-btn" data-type="advanced">Crate 2 (Advanced)</button>
-      <button class="chest-btn" data-type="elite">Crate 3 (Elite)</button>
+      <button class="chest-btn" data-type="basic">Basic Crate: 1500</button>
+      <button class="chest-btn" data-type="advanced">Advanced Crate: 5000</button>
+      <button class="chest-btn" data-type="elite">Elite Crate: 60000</button>
     </div>
   </div>
 
@@ -48,7 +48,7 @@ window.onerror = function(msg, url, line, col, error) {
 
   <div id="levelup-menu" class="menu hidden fullscreen">
     <h2>Level Up!</h2>
-    <p>Choose an ability or helper:</p>
+    <p>Choose an ability:</p>
     <div id="levelup-options"></div>
   </div>
 
@@ -81,8 +81,7 @@ window.onerror = function(msg, url, line, col, error) {
         <h3>Items</h3>
         <div id="inventory-list" style="max-height:260px; overflow-y:auto; border:1px solid #555; padding:6px;"></div>
         <div id="inventory-actions" style="margin-top:10px;">
-          <button id="inv-keep-btn">Keep</button>
-          <button id="inv-move-btn">Move (Equip)</button>
+          <button id="inv-move-btn">Equip</button>
           <button id="inv-merge-btn">Merge</button>
           <button id="inv-close-btn">Close</button>
         </div>

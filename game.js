@@ -179,7 +179,8 @@ class Player {
           if (e.health <= 0) {
             e.alive = false;
             onEnemyKilled();
-            addCoins(5 + wave);
+            const difficulty = Math.floor(elapsedTime / 10000);
+            addCoins(5 + difficulty);
           }
         }
       });
@@ -352,7 +353,8 @@ class Enemy {
         if (this.health <= 0) {
           this.alive = false;
           onEnemyKilled();
-          addCoins(5 + wave);
+          const difficulty = Math.floor(elapsedTime / 10000);
+          addCoins(5 + difficulty);
         }
       }
 
@@ -406,11 +408,13 @@ function spawnHitParticles(x, y, color) {
 }
 
 // ===============================
-// CONTINUOUS SPAWN (UNWAVE-BASED FEEL)
+// CONTINUOUS SPAWN (TIME-BASED)
 // ===============================
 
 function spawnEnemyPack() {
   const count = 2 + Math.floor(Math.random() * 3); // 2–4 enemies per tick
+  const difficulty = Math.floor(elapsedTime / 10000); // +1 every 10s
+
   for (let i = 0; i < count; i++) {
     let x, y;
     const edge = Math.floor(Math.random() * 4);
@@ -420,8 +424,8 @@ function spawnEnemyPack() {
     else if (edge === 2) { x = Math.random() * WIDTH; y = HEIGHT + 20; }
     else { x = -20; y = Math.random() * HEIGHT; }
 
-    const speed = 1 + wave * 0.08;
-    const health = 25 + wave * 4;
+    const speed = 1 + difficulty * 0.1;
+    const health = 25 + difficulty * 6;
 
     enemies.push(new Enemy(x, y, speed, health));
   }
@@ -437,9 +441,10 @@ function startGame() {
   enemies = [];
   particles = [];
   spawnTimer = 0;
+  elapsedTime = 0;
 
   resetAbilities();
-  resetWaves();
+  resetWaves(); // harmless even though waves aren't used anymore
 
   // Default weapon if none saved
   if (!equippedWeapon) {
@@ -474,11 +479,16 @@ function startGame() {
 function endGame(won) {
   gameRunning = false;
 
+  const t = Math.floor(elapsedTime / 1000);
+  const minutes = Math.floor(t / 60);
+  const seconds = t % 60;
+  const timeStr = `${minutes}:${seconds < 10 ? "0" + seconds : seconds}`;
+
   if (won) {
-    setMessage(`You survived wave ${wave}!`);
+    setMessage(`You survived for ${timeStr}!`);
     showMainMenu();
   } else {
-    setMessage(`You died on wave ${wave}.`);
+    setMessage(`You died after ${timeStr}.`);
     showDeathScreen();
   }
 }
@@ -581,6 +591,7 @@ function updateHealthUI() {
 
 function update(dt) {
   if (!gameRunning || paused) return;
+
   elapsedTime += dt;
   updateTimeUI();
 
@@ -589,8 +600,9 @@ function update(dt) {
 
   // continuous spawn
   spawnTimer += dt;
+  const difficulty = Math.floor(elapsedTime / 10000);
   const baseInterval = 1400; // ms
-  const interval = Math.max(400, baseInterval - wave * 30); // faster over time
+  const interval = Math.max(400, baseInterval - difficulty * 40); // faster over time
   if (spawnTimer >= interval) {
     spawnTimer -= interval;
     spawnEnemyPack();
@@ -629,7 +641,7 @@ function update(dt) {
         if (e.health <= 0) {
           e.alive = false;
           onEnemyKilled();
-          addCoins(e.isBoss ? 200 + wave * 10 : 5 + wave);
+          addCoins(e.isBoss ? 200 + difficulty * 10 : 5 + difficulty);
         }
       }
     });
@@ -642,16 +654,18 @@ function update(dt) {
   updateHealthUI();
 
   updateAbilities(dt);
-
-  // no more "if enemies.length === 0 then nextWave()"
 }
+
 function updateTimeUI() {
+  const el = document.getElementById("time");
+  if (!el) return; // safety
+
   const t = Math.floor(elapsedTime / 1000);
   const minutes = Math.floor(t / 60);
   const seconds = t % 60;
-  document.getElementById("time").textContent =
-    minutes + ":" + (seconds < 10 ? "0" + seconds : seconds);
+  el.textContent = minutes + ":" + (seconds < 10 ? "0" + seconds : seconds);
 }
+
 function draw() {
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
 

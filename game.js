@@ -14,6 +14,8 @@ const HEIGHT = canvas.height;
 let keys = {};
 let mouse = { x: WIDTH / 2, y: HEIGHT / 2, down: false };
 
+let elapsedTime = 0; // milliseconds survived
+
 let player;
 let bullets = [];
 let enemies = [];
@@ -576,9 +578,18 @@ function showLevelUpChoices() {
 function updateHealthUI() {
   healthEl.textContent = Math.round(player.health);
 }
+function updateTimeUI() {
+  const t = Math.floor(elapsedTime / 1000);
+  const minutes = Math.floor(t / 60);
+  const seconds = t % 60;
+  document.getElementById("time").textContent =
+    minutes + ":" + (seconds < 10 ? "0" + seconds : seconds);
+}
 
 function update(dt) {
   if (!gameRunning || paused) return;
+  elapsedTime += dt;
+  updateTimeUI();
 
   player.applyGearAndHelpers();
   player.update(dt);

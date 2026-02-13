@@ -21,6 +21,9 @@ let particles = [];
 
 let lastTime = 0;
 
+// continuous spawn timer
+let spawnTimer = 0;
+
 // ===============================
 // PLAYER
 // ===============================
@@ -31,14 +34,14 @@ class Player {
     this.y = HEIGHT / 2;
     this.radius = 15;
 
-    this.baseSpeed = 3.4;
+    this.baseSpeed = 3;
     this.speed = this.baseSpeed;
 
-    this.baseHealth = 140;
+    this.baseHealth = 100;
     this.maxHealth = this.baseHealth;
     this.health = this.maxHealth;
 
-    this.baseFireRate = 170;
+    this.baseFireRate = 200;
     this.fireRate = this.baseFireRate;
     this.lastShot = 0;
 
@@ -77,42 +80,42 @@ class Player {
 
     // Knight: defense
     if (setCounts["Knight"] === 5) {
-      this.maxHealth += 30;
+      this.maxHealth += 20;
     }
     if (legendarySets["Knight"]) {
-      this.thorns = 0.12;
+      this.thorns = 0.10;
     }
 
     // Rogue: speed
     if (setCounts["Rogue"] === 5) {
-      this.speed *= 1.18;
+      this.speed *= 1.15;
     }
     if (legendarySets["Rogue"]) {
-      this.dodgeChance = 0.12;
+      this.dodgeChance = 0.10;
     }
 
     // Mage: ability damage
     if (setCounts["Mage"] === 5) {
-      this.abilityDamageBonus = 0.18;
+      this.abilityDamageBonus = 0.15;
     }
     if (legendarySets["Mage"]) {
-      this.cooldownBonus = 0.12;
+      this.cooldownBonus = 0.10;
     }
 
     // Guardian: tank
     if (setCounts["Guardian"] === 5) {
-      this.maxHealth += 50;
+      this.maxHealth += 40;
     }
     if (legendarySets["Guardian"]) {
-      this.regenBonus = 1.2;
+      this.regenBonus = 1;
     }
 
     // Berserker: offense
     if (setCounts["Berserker"] === 5) {
-      this.fireRate *= 0.88;
+      this.fireRate *= 0.90;
     }
     if (legendarySets["Berserker"]) {
-      this.bonusWeaponDamage = 0.12;
+      this.bonusWeaponDamage = 0.10;
     }
 
     // Weapon evo: require helper at 5★ and weapon at max tier
@@ -122,8 +125,10 @@ class Player {
       }
     }
 
+    // per-weapon cooldown: baseFireRate / (attackSpeed * atkSpeedMult * fireRateMult)
     if (equippedWeapon) {
-      this.fireRate = this.baseFireRate / (equippedWeapon.stats.attackSpeed * atkSpeedMult);
+      const mult = equippedWeapon.fireRateMult || 1;
+      this.fireRate = this.baseFireRate / (equippedWeapon.stats.attackSpeed * atkSpeedMult * mult);
     } else {
       this.fireRate = this.baseFireRate / atkSpeedMult;
     }
@@ -172,7 +177,7 @@ class Player {
           if (e.health <= 0) {
             e.alive = false;
             onEnemyKilled();
-            addCoins(8 + Math.floor(wave * 1.2));
+            addCoins(5 + wave);
           }
         }
       });
@@ -335,7 +340,7 @@ class Enemy {
       }
 
       const armor = getTotalArmor();
-      const reduced = Math.max(2, 7 - armor * 0.25);
+      const reduced = Math.max(4, 10 - armor * 0.3);
 
       player.health -= reduced;
       spawnHitParticles(this.x, this.y, "#f44336");
@@ -345,7 +350,7 @@ class Enemy {
         if (this.health <= 0) {
           this.alive = false;
           onEnemyKilled();
-          addCoins(8 + Math.floor(wave * 1.2));
+          addCoins(5 + wave);
         }
       }
 
@@ -399,14 +404,12 @@ function spawnHitParticles(x, y, color) {
 }
 
 // ===============================
-// WAVES
+// CONTINUOUS SPAWN (UNWAVE-BASED FEEL)
 // ===============================
 
-function spawnNormalWave() {
-  enemies = [];
-  const enemyCount = Math.floor(2 + wave * 1.2);
-
-  for (let i = 0; i < enemyCount; i++) {
+function spawnEnemyPack() {
+  const count = 2 + Math.floor(Math.random() * 3); // 2–4 enemies per tick
+  for (let i = 0; i < count; i++) {
     let x, y;
     const edge = Math.floor(Math.random() * 4);
 
@@ -415,32 +418,10 @@ function spawnNormalWave() {
     else if (edge === 2) { x = Math.random() * WIDTH; y = HEIGHT + 20; }
     else { x = -20; y = Math.random() * HEIGHT; }
 
-    const speed = 0.9 + wave * 0.1;
-    const health = 20 + wave * 4;
+    const speed = 1 + wave * 0.08;
+    const health = 25 + wave * 4;
 
     enemies.push(new Enemy(x, y, speed, health));
-  }
-
-  enemiesLeftEl.textContent = enemies.length;
-}
-
-function spawnBoss() {
-  enemies = [];
-
-  const x = WIDTH / 2;
-  const y = -60;
-  const speed = 0.7 + wave * 0.04;
-  const health = 320 + wave * 30;
-
-  enemies.push(new Enemy(x, y, speed, health, true));
-  enemiesLeftEl.textContent = enemies.length;
-}
-
-function spawnWave() {
-  if (wave % 15 === 0) {
-    spawnBoss();
-  } else {
-    spawnNormalWave();
   }
 }
 
@@ -453,6 +434,7 @@ function startGame() {
   bullets = [];
   enemies = [];
   particles = [];
+  spawnTimer = 0;
 
   resetAbilities();
   resetWaves();
@@ -466,6 +448,7 @@ function startGame() {
       tier: 0,
       evoReq: "berserker_core",
       evolved: false,
+      fireRateMult: 1,
       stats: generateWeaponStats(0)
     };
     addItemToInventory(defaultWeapon);
@@ -478,7 +461,8 @@ function startGame() {
   paused = false;
   setMessage("");
 
-  spawnWave();
+  // initial enemies
+  spawnEnemyPack();
   updateHealthUI();
 
   lastTime = performance.now();
@@ -515,15 +499,21 @@ function showLevelUpChoices() {
     const isAbility = Math.random() < 0.6;
 
     if (isAbility) {
-      const ab = randomFrom(ABILITY_POOL);
-      if (used.has("ab_" + ab.id)) continue;
-      used.add("ab_" + ab.id);
-      options.push({ type: "ability", def: ab });
+      const def = randomFrom(ABILITY_POOL);
+      const existing = abilities.find(a => a.id === def.id);
+      // skip if already maxed (level 5)
+      if (existing && existing.level >= 5) continue;
+      if (used.has("ab_" + def.id)) continue;
+      used.add("ab_" + def.id);
+      options.push({ type: "ability", def });
     } else {
-      const h = randomFrom(HELPER_POOL);
-      if (used.has("h_" + h.id)) continue;
-      used.add("h_" + h.id);
-      options.push({ type: "helper", def: h });
+      const def = randomFrom(HELPER_POOL);
+      const existing = helpers.find(h => h.id === def.id);
+      // skip if already maxed (level 5)
+      if (existing && existing.level >= 5) continue;
+      if (used.has("h_" + def.id)) continue;
+      used.add("h_" + def.id);
+      options.push({ type: "helper", def });
     }
   }
 
@@ -539,13 +529,15 @@ function showLevelUpChoices() {
 
     if (opt.type === "ability") {
       const existing = abilities.find(a => a.id === opt.def.id);
-      const nextLevel = Math.min((existing ? existing.level : 0) + 1, 5);
+      const currentLevel = existing ? existing.level : 0;
+      const nextLevel = Math.min(currentLevel + 1, 5);
 
       title.textContent = `Ability: ${opt.def.name}`;
       stars.textContent = "★".repeat(nextLevel) + "☆".repeat(5 - nextLevel);
     } else {
       const existing = helpers.find(h => h.id === opt.def.id);
-      const nextLevel = Math.min((existing ? existing.level : 0) + 1, 5);
+      const currentLevel = existing ? existing.level : 0;
+      const nextLevel = Math.min(currentLevel + 1, 5);
 
       title.textContent = `Secondary: ${opt.def.name}`;
       stars.textContent = "★".repeat(nextLevel) + "☆".repeat(5 - nextLevel);
@@ -591,6 +583,15 @@ function update(dt) {
   player.applyGearAndHelpers();
   player.update(dt);
 
+  // continuous spawn
+  spawnTimer += dt;
+  const baseInterval = 1400; // ms
+  const interval = Math.max(400, baseInterval - wave * 30); // faster over time
+  if (spawnTimer >= interval) {
+    spawnTimer -= interval;
+    spawnEnemyPack();
+  }
+
   bullets.forEach(b => b.update(dt));
   bullets = bullets.filter(b => b.alive);
 
@@ -624,11 +625,7 @@ function update(dt) {
         if (e.health <= 0) {
           e.alive = false;
           onEnemyKilled();
-          if (e.isBoss) {
-            addCoins(260 + Math.floor(wave * 12));
-          } else {
-            addCoins(8 + Math.floor(wave * 1.2));
-          }
+          addCoins(e.isBoss ? 200 + wave * 10 : 5 + wave);
         }
       }
     });
@@ -642,10 +639,7 @@ function update(dt) {
 
   updateAbilities(dt);
 
-  if (enemies.length === 0 && gameRunning) {
-    nextWave();
-    spawnWave();
-  }
+  // no more "if enemies.length === 0 then nextWave()"
 }
 
 function draw() {

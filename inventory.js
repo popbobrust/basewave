@@ -166,7 +166,7 @@ function hookInventoryButtons() {
     });
   }
 
-  document.getElementById("inv-keep-btn").addEventListener("click", inventoryKeepSelected);
+
   document.getElementById("inv-move-btn").addEventListener("click", inventoryMoveSelected);
   document.getElementById("inv-merge-btn").addEventListener("click", inventoryMergeSelected);
   document.getElementById("inv-close-btn").addEventListener("click", closeInventory);

@@ -9,22 +9,26 @@ const WEAPON_POOL = [
   {
     id: "soulblade",
     name: "Soulblade",
-    evoReq: "berserker_core"
+    evoReq: "berserker_core",
+    fireRateMult: 1.0 // baseline
   },
   {
     id: "stormbow",
     name: "Stormbow",
-    evoReq: "storm_core"
+    evoReq: "storm_core",
+    fireRateMult: 0.8 // slower but harder hitting feel
   },
   {
     id: "flamethrower",
     name: "Flamethrower",
-    evoReq: "flame_core"
+    evoReq: "flame_core",
+    fireRateMult: 1.3 // faster stream
   },
   {
     id: "railgun",
     name: "Railgun",
-    evoReq: "rail_core"
+    evoReq: "rail_core",
+    fireRateMult: 0.6 // chunky, slow shots
   }
 ];
 
@@ -51,6 +55,7 @@ function createWeapon(chestType) {
     tier,
     evoReq: def.evoReq || null,
     evolved: false,
+    fireRateMult: def.fireRateMult || 1,
     stats: generateWeaponStats(tier)
   };
 }

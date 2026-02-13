@@ -444,7 +444,7 @@ function startGame() {
   elapsedTime = 0;
 
   resetAbilities();
-  resetWaves(); // harmless even though waves aren't used anymore
+  
 
   // Default weapon if none saved
   if (!equippedWeapon) {

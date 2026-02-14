@@ -641,7 +641,9 @@ function update(dt) {
         if (e.health <= 0) {
           e.alive = false;
           onEnemyKilled();
-          addCoins(e.isBoss ? 200 + difficulty * 10 : 5 + difficulty);
+          const diff = Math.floor(elapsedTime / 10000);
+          addCoins(e.isBoss ? 200 + diff * 10 : 5 + diff);
+
         }
       }
     });

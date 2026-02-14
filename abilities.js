@@ -369,6 +369,10 @@ function spawnDroneShot(ab, damage) {
 
 let droneMissileTimer = 0;
 
+// ===============================
+// DRONE (SAFE UPDATE)
+// ===============================
+
 function updateDroneBursts(dt) {
   droneAngle += 0.002 * dt;
 
@@ -377,8 +381,13 @@ function updateDroneBursts(dt) {
     const fireInterval = droneAb.evolved ? 140 : 200;
     droneMissileTimer += dt;
 
-    while (droneMissileTimer >= fireInterval) {
+    // --- FIX: prevent infinite loop ---
+    let safety = 0;
+    const MAX_LOOPS = 5; // fires at most 5 bursts per frame
+
+    while (droneMissileTimer >= fireInterval && safety < MAX_LOOPS) {
       droneMissileTimer -= fireInterval;
+      safety++;
 
       const droneRadius = 40;
       const droneX = player.x + Math.cos(droneAngle) * droneRadius;
@@ -402,7 +411,33 @@ function updateDroneBursts(dt) {
         });
       }
     }
+
+    // If dt was huge, reset timer so it doesn't accumulate forever
+    if (safety === MAX_LOOPS) {
+      droneMissileTimer = 0;
+    }
   }
+
+  droneBursts.forEach(b => {
+    b.life -= dt;
+
+    enemies.forEach(e => {
+      if (!e.alive) return;
+      if (Math.hypot(e.x - b.x, e.y - b.y) < b.radius) {
+        e.health -= b.damage;
+        spawnHitParticles(e.x, e.y, "#ffee58");
+        if (e.health <= 0) {
+          e.alive = false;
+          onEnemyKilled();
+          addCoins(5 + wave);
+        }
+      }
+    });
+  });
+
+  droneBursts = droneBursts.filter(b => b.life > 0);
+}
+
 
   droneBursts.forEach(b => {
     b.life -= dt;

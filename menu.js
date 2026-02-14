@@ -30,7 +30,16 @@ function quitToMenu() {
 function showDeathScreen() {
   const menu = document.getElementById("death-menu");
   const summary = document.getElementById("death-summary");
-  summary.textContent = `You died on wave ${wave}, level ${playerLevel}, with ${coins} coins.`;
+
+  const t = Math.floor((typeof elapsedTime !== "undefined" ? elapsedTime : 0) / 1000);
+  const minutes = Math.floor(t / 60);
+  const seconds = t % 60;
+  const timeStr = `${minutes}:${seconds < 10 ? "0" + seconds : seconds}`;
+
+  const lvl = typeof playerLevel !== "undefined" ? playerLevel : 1;
+  const coinCount = typeof coins !== "undefined" ? coins : 0;
+
+  summary.textContent = `You died after ${timeStr}, level ${lvl}, with ${coinCount} coins.`;
   menu.classList.remove("hidden");
 }
 
@@ -69,13 +78,13 @@ function hookMenuButtons() {
       paused ? resumeGame() : pauseGame();
     }
   });
+
   const invBtn = document.getElementById("inventory-btn");
   if (invBtn) {
     invBtn.addEventListener("click", () => {
       openInventory();
     });
   }
-
 }
 
 function setMessage(text) {

@@ -312,7 +312,8 @@ function applyForcefield(ab, damage) {
         e.alive = false;
         spawnHitParticles(e.x, e.y, "#42a5f5");
         onEnemyKilled();
-        addCoins(5 + wave);
+        const difficulty = Math.floor(elapsedTime / 10000);
+        addCoins(5 + difficulty);
       }
     }
   });
@@ -351,7 +352,8 @@ function updateMolotovPools(dt) {
         if (e.health <= 0) {
           e.alive = false;
           onEnemyKilled();
-          addCoins(5 + wave);
+          const difficulty = Math.floor(elapsedTime / 10000);
+          addCoins(5 + difficulty);
         }
       }
     });
@@ -377,8 +379,13 @@ function updateDroneBursts(dt) {
     const fireInterval = droneAb.evolved ? 140 : 200;
     droneMissileTimer += dt;
 
-    while (droneMissileTimer >= fireInterval) {
+    // safety cap to avoid runaway loops on huge dt
+    let safety = 0;
+    const MAX_LOOPS = 5;
+
+    while (droneMissileTimer >= fireInterval && safety < MAX_LOOPS) {
       droneMissileTimer -= fireInterval;
+      safety++;
 
       const droneRadius = 40;
       const droneX = player.x + Math.cos(droneAngle) * droneRadius;
@@ -402,6 +409,10 @@ function updateDroneBursts(dt) {
         });
       }
     }
+
+    if (safety === MAX_LOOPS) {
+      droneMissileTimer = 0;
+    }
   }
 
   droneBursts.forEach(b => {
@@ -415,7 +426,8 @@ function updateDroneBursts(dt) {
         if (e.health <= 0) {
           e.alive = false;
           onEnemyKilled();
-          addCoins(5 + wave);
+          const difficulty = Math.floor(elapsedTime / 10000);
+          addCoins(5 + difficulty);
         }
       }
     });

@@ -7,6 +7,7 @@ const ctx = canvas.getContext("2d");
 
 const healthEl = document.getElementById("health");
 const enemiesLeftEl = document.getElementById("enemies-left");
+const playerLevelEl = document.getElementById("player-level");
 
 const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
@@ -25,6 +26,11 @@ let lastTime = 0;
 
 // continuous spawn timer
 let spawnTimer = 0;
+
+// leveling
+let playerLevel = 1;
+let kills = 0;
+const KILLS_PER_LEVEL = 10;
 
 // ===============================
 // PLAYER
@@ -194,7 +200,7 @@ class Player {
       const count = equippedWeapon.evolved ? 3 : 1;
 
       for (let i = 0; i < count; i++) {
-        const offset = (i - (count - 1) / 2) * spread;
+        const offset = (i - (count - 1)) / 2 * spread;
         bullets.push(new Bullet(
           this.x,
           this.y,
@@ -408,6 +414,21 @@ function spawnHitParticles(x, y, color) {
 }
 
 // ===============================
+// KILL / LEVEL SYSTEM
+// ===============================
+
+function onEnemyKilled() {
+  kills++;
+  if (kills % KILLS_PER_LEVEL === 0) {
+    playerLevel++;
+    if (playerLevelEl) {
+      playerLevelEl.textContent = playerLevel;
+    }
+    showLevelUpChoices();
+  }
+}
+
+// ===============================
 // CONTINUOUS SPAWN (TIME-BASED)
 // ===============================
 
@@ -443,8 +464,14 @@ function startGame() {
   spawnTimer = 0;
   elapsedTime = 0;
 
+  // reset level / kills
+  playerLevel = 1;
+  kills = 0;
+  if (playerLevelEl) {
+    playerLevelEl.textContent = playerLevel;
+  }
+
   resetAbilities();
-  
 
   // Default weapon if none saved
   if (!equippedWeapon) {
